@@ -1,0 +1,20 @@
+# Build directies #
+###################
+/target/
+*/target
+/build/
+*/build
+# Eclipse specific #
+####################
+.classpath
+.project
+.settings
+.metadata
+# Logs #
+########
+*.log
+# code source #
+###############
+.class
+/bin/
+.Zone
