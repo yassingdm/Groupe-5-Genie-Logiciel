@@ -1,20 +1,19 @@
-# Build directies #
-###################
-/target/
-*/target
-/build/
-*/build
-# Eclipse specific #
-####################
-.classpath
-.project
-.settings
-.metadata
-# Logs #
-########
-*.log
-# code source #
-###############
-.class
-/bin/
+# Compiled files 
+target/ 
+*.class 
+bin/ 
+# IDE 
+.project 
+.classpath 
+.settings/ 
+.metadata/ 
+# OS 
+.DS_Store 
+Thumbs.db 
+# Logs 
+*.log 
+# Package files 
+*.jar 
+*.war 
+*.ear
 .Zone
