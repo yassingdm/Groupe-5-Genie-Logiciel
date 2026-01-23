@@ -8,3 +8,4 @@ public class Personne {
         this.mail=email;
     }
 }
+// une modification minime 
