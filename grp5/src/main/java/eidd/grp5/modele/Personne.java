@@ -1,4 +1,4 @@
-package eidd.grp5;
+package eidd.grp5.modele;
 public class Personne {
     private String nom;
     private String mail;
