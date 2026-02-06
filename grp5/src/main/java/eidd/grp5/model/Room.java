@@ -1,6 +1,6 @@
 package eidd.grp5.model;   
 public class Room {
-    private int id;
+    private Long id;
     private int capacity;
     private String name;
     private boolean available;
@@ -8,9 +8,17 @@ public class Room {
 
 
     public Room(int id,String name,int capacity,String description){
-        this.id=id;
+        this.id=(long)id;
         this.name=name;
         this.capacity=capacity;
         this.description=description;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 }
