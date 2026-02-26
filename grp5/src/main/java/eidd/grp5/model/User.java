@@ -1,19 +1,28 @@
 package eidd.grp5.model;
+
 public class User {
     private Long id;
-    private String name;
+    private String lastName;
+    private String firstName;
     private String email;
+    private String role; // ADMIN ou CUSTOMER
 
-    public User(String name,String email){
-        this.name=name;
-        this.email=email;
+    public User(String lastName, String firstName, String email, String role) {
+        this.lastName = lastName;
+        this.firstName = firstName;
+        this.email = email;
+        this.role = role;
     }
 
-    public Long getId() {
-        return id;
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getEmail() { return email; }
+    
+    public String getFullName() {
+        return firstName + " " + lastName;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public boolean isAdmin() {
+        return "ADMIN".equalsIgnoreCase(this.role);
     }
 }

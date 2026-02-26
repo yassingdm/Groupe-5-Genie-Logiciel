@@ -1,24 +1,22 @@
-package eidd.grp5.model;   
+package eidd.grp5.model;
+
 public class Room {
     private Long id;
-    private int capacity;
     private String name;
+    private int capacity;
     private boolean available;
-    private String description;
 
-
-    public Room(int id,String name,int capacity,String description){
-        this.id=(long)id;
-        this.name=name;
-        this.capacity=capacity;
-        this.description=description;
+    public Room(String name, int capacity) {
+        this.name = name;
+        this.capacity = capacity;
+        this.available = true; // Disponible par défaut
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getName() { return name; }
+    public int getCapacity() { return capacity; }
+    
+    public boolean isAvailable() { return available; }
+    public void setAvailable(boolean available) { this.available = available; }
 }
