@@ -7,7 +7,7 @@ public class Reservation {
     private String reference;
 
     private User client;
-    private Salle room;
+    private Room room;
 
     private LocalDateTime startDate;
     private LocalDateTime endDate;
@@ -16,12 +16,28 @@ public class Reservation {
     private int participantCount;
     private String purpose;
 
+    public enum Status {
+        PENDING,
+        CONFIRMED,
+        CANCELLED
+    }
+
+    private Status status;
+
     public Long getId() {
         return id;
     }
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
     }
 }
                

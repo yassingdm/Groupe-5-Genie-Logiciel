@@ -3,7 +3,6 @@ public class Room {
     private Long id;
     private int capacity;
     private String name;
-    private boolean available;
     private String description;
 
 
