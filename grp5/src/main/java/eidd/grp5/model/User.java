@@ -5,9 +5,16 @@ public class User {
     private String lastName;
     private String firstName;
     private String email;
-    private String role; // ADMIN ou CUSTOMER
+    private String role; // "ADMIN" ou "CUSTOMER"
 
     public User(String lastName, String firstName, String email, String role) {
+        if (email == null || !email.contains("@")) {
+            throw new IllegalArgumentException("Format d'email invalide."); 
+        }
+        if (lastName == null || lastName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Le nom est obligatoire.");
+        }
+        
         this.lastName = lastName;
         this.firstName = firstName;
         this.email = email;
