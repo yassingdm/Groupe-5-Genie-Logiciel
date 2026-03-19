@@ -1,14 +1,17 @@
 package eidd.grp5.service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 import eidd.grp5.model.Reservation;
+import eidd.grp5.model.Room;
 import eidd.grp5.repository.ReservationRepository;
 
 class ReservationServiceTest {
@@ -65,5 +68,174 @@ class ReservationServiceTest {
         assertTrue(cancelled);
         assertEquals(Reservation.Status.CANCELLED,
                 service.getReservationById(saved.getId()).orElseThrow().getStatus());
+    }
+
+    @Test
+    void shouldConfirmExistingReservation() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+        Reservation reservation = new Reservation();
+
+        Reservation saved = service.createReservation(reservation);
+        boolean confirmed = service.confirmReservation(saved.getId());
+
+        assertTrue(confirmed);
+        assertEquals(Reservation.Status.CONFIRMED,
+                service.getReservationById(saved.getId()).orElseThrow().getStatus());
+    }
+
+    @Test
+    void shouldReturnFalseWhenConfirmingUnknownReservation() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+
+        boolean confirmed = service.confirmReservation(999L);
+
+        assertFalse(confirmed);
+    }
+
+    @Test
+    void shouldDetectRoomUnavailabilityAndRejectOverlappingReservation() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+        Room room = new Room(1, "A101", 10, "Salle réunion");
+
+        Reservation existing = new Reservation();
+        existing.setRoom(room);
+        existing.setStartDate(LocalDateTime.of(2026, 3, 20, 10, 0));
+        existing.setEndDate(LocalDateTime.of(2026, 3, 20, 11, 0));
+        service.createReservation(existing);
+
+        boolean available = service.isRoomAvailable(
+                1L,
+                LocalDateTime.of(2026, 3, 20, 10, 30),
+                LocalDateTime.of(2026, 3, 20, 11, 30));
+
+        assertFalse(available);
+
+        Reservation overlap = new Reservation();
+        overlap.setRoom(room);
+        overlap.setStartDate(LocalDateTime.of(2026, 3, 20, 10, 30));
+        overlap.setEndDate(LocalDateTime.of(2026, 3, 20, 11, 30));
+
+        IllegalStateException overlapException = assertThrows(IllegalStateException.class,
+            () -> service.createReservation(overlap));
+        assertNotNull(overlapException);
+    }
+
+    @Test
+    void shouldAllowSlotAfterCancellationAndValidateCapacity() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+        Room room = new Room(2, "B202", 2, "Petite salle");
+
+        Reservation first = new Reservation();
+        first.setRoom(room);
+        first.setStartDate(LocalDateTime.of(2026, 3, 21, 9, 0));
+        first.setEndDate(LocalDateTime.of(2026, 3, 21, 10, 0));
+        Reservation saved = service.createReservation(first);
+        service.cancelReservation(saved.getId());
+
+        Reservation second = new Reservation();
+        second.setRoom(room);
+        second.setStartDate(LocalDateTime.of(2026, 3, 21, 9, 15));
+        second.setEndDate(LocalDateTime.of(2026, 3, 21, 9, 45));
+
+        Reservation created = service.createReservation(second);
+        assertNotNull(created.getId());
+
+        Reservation tooManyParticipants = new Reservation();
+        tooManyParticipants.setRoom(room);
+        tooManyParticipants.setParticipantCount(3);
+
+        IllegalArgumentException capacityException = assertThrows(IllegalArgumentException.class,
+            () -> service.createReservation(tooManyParticipants));
+        assertNotNull(capacityException);
+    }
+
+    @Test
+    void shouldThrowWhenCheckingAvailabilityWithInvalidDates() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+
+        IllegalArgumentException invalidDateException = assertThrows(IllegalArgumentException.class, () -> service.isRoomAvailable(
+                1L,
+                LocalDateTime.of(2026, 3, 22, 14, 0),
+                LocalDateTime.of(2026, 3, 22, 13, 0)));
+        assertNotNull(invalidDateException);
+    }
+
+    @Test
+    void shouldGetReservationsByRoom() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+
+        Room roomA = new Room(10, "A", 10, "Salle A");
+        Room roomB = new Room(20, "B", 10, "Salle B");
+
+        Reservation resA1 = new Reservation();
+        resA1.setRoom(roomA);
+        resA1.setStartDate(LocalDateTime.of(2026, 3, 23, 9, 0));
+        resA1.setEndDate(LocalDateTime.of(2026, 3, 23, 10, 0));
+        service.createReservation(resA1);
+
+        Reservation resA2 = new Reservation();
+        resA2.setRoom(roomA);
+        resA2.setStartDate(LocalDateTime.of(2026, 3, 23, 11, 0));
+        resA2.setEndDate(LocalDateTime.of(2026, 3, 23, 12, 0));
+        service.createReservation(resA2);
+
+        Reservation resB = new Reservation();
+        resB.setRoom(roomB);
+        resB.setStartDate(LocalDateTime.of(2026, 3, 23, 9, 0));
+        resB.setEndDate(LocalDateTime.of(2026, 3, 23, 10, 0));
+        service.createReservation(resB);
+
+        List<Reservation> roomAReservations = service.getReservationsByRoom(10L);
+
+        assertEquals(2, roomAReservations.size());
+    }
+
+    @Test
+    void shouldGetReservationsByRoomAndPeriod() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+
+        Room room = new Room(30, "C", 10, "Salle C");
+
+        Reservation inside = new Reservation();
+        inside.setRoom(room);
+        inside.setStartDate(LocalDateTime.of(2026, 3, 24, 10, 0));
+        inside.setEndDate(LocalDateTime.of(2026, 3, 24, 11, 0));
+        service.createReservation(inside);
+
+        Reservation outside = new Reservation();
+        outside.setRoom(room);
+        outside.setStartDate(LocalDateTime.of(2026, 3, 24, 13, 0));
+        outside.setEndDate(LocalDateTime.of(2026, 3, 24, 14, 0));
+        service.createReservation(outside);
+
+        List<Reservation> result = service.getReservationsByRoomAndPeriod(
+                30L,
+                LocalDateTime.of(2026, 3, 24, 9, 30),
+                LocalDateTime.of(2026, 3, 24, 11, 30));
+
+        assertEquals(1, result.size());
+        assertEquals(inside.getId(), result.get(0).getId());
+    }
+
+    @Test
+    void shouldThrowWhenFilteringWithInvalidPeriod() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.getReservationsByRoomAndPeriod(
+                        1L,
+                        LocalDateTime.of(2026, 3, 24, 12, 0),
+                        LocalDateTime.of(2026, 3, 24, 12, 0)));
+
+        assertNotNull(exception);
     }
 }
