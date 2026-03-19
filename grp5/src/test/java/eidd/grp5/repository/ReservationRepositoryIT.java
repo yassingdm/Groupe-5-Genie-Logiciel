@@ -49,4 +49,36 @@ class ReservationRepositoryIT {
         assertTrue(found.isPresent());
         assertEquals("RES @#$%", found.get().getReference());
     }
+
+    @Test
+    void shouldReturnFalseWhenDeletingUnknownId() {
+        boolean deleted = repository.delete(12345L);
+
+        assertFalse(deleted);
+    }
+
+    @Test
+    void shouldNotInsertWhenUpdatingUnknownId() {
+        Reservation reservation = new Reservation();
+        reservation.setId(999L);
+        reservation.setReference("UNKNOWN");
+
+        repository.save(reservation);
+
+        assertEquals(0L, repository.count());
+        assertFalse(repository.findById(999L).isPresent());
+    }
+
+    @Test
+    void shouldReturnDefensiveCopyInFindAll() {
+        Reservation reservation = new Reservation();
+        reservation.setReference("RES-DEF");
+        repository.save(reservation);
+
+        List<Reservation> snapshot = repository.findAll();
+        snapshot.clear();
+
+        assertEquals(1L, repository.count());
+        assertEquals(1, repository.findAll().size());
+    }
 }
