@@ -13,7 +13,7 @@ import eidd.grp5.app.App;
 public class AppTest {
     @Test
     void testApp() {
-        assertTrue(true);
+    	assertTrue(false);
     }
 
     @Test
