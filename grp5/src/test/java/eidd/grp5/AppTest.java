@@ -22,7 +22,7 @@ public class AppTest {
         PrintStream originalOut = System.out;
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outputStream));
-        System.setIn(new ByteArrayInputStream("2\n".getBytes()));
+        System.setIn(new ByteArrayInputStream("8\n".getBytes()));
         try {
             App.main(new String[0]);
         } finally {
