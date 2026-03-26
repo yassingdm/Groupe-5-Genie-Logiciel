@@ -1,3 +1,5 @@
+![CI](https://github.com/yassingdm/Groupe-5-Genie-Logiciel/actions/workflows/ci.yml/badge.svg)
+
 # Groupe-5-Genie-Logiciel
 
 # Team
