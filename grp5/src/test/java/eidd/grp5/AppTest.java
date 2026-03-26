@@ -1,6 +1,8 @@
 package eidd.grp5;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.PrintStream;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -16,12 +18,15 @@ public class AppTest {
 
     @Test
     void shouldPrintWelcomeMessageInMain() {
+        InputStream originalIn = System.in;
         PrintStream originalOut = System.out;
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outputStream));
+        System.setIn(new ByteArrayInputStream("2\n".getBytes()));
         try {
             App.main(new String[0]);
         } finally {
+            System.setIn(originalIn);
             System.setOut(originalOut);
         }
 
