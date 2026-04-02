@@ -148,6 +148,70 @@ public class ReservationService {
         return reservationRepository.delete(id);
     }
 
+    public List<Reservation> getConflictingReservations(Long roomId, LocalDateTime startDate, LocalDateTime endDate) {
+        if (roomId == null || startDate == null || endDate == null) {
+            throw new IllegalArgumentException("roomId, startDate and endDate must not be null");
+        }
+        if (!endDate.isAfter(startDate)) {
+            throw new IllegalArgumentException("endDate must be after startDate");
+        }
+
+        List<Reservation> conflicts = new ArrayList<>();
+        for (Reservation reservation : reservationRepository.findAll()) {
+            if (reservation.getStatus() == Reservation.Status.CANCELLED) {
+                continue;
+            }
+            if (reservation.getRoom() == null || reservation.getRoom().getId() == null
+                    || !roomId.equals(reservation.getRoom().getId())) {
+                continue;
+            }
+            if (reservation.getStartDate() == null || reservation.getEndDate() == null) {
+                continue;
+            }
+            if (startDate.isBefore(reservation.getEndDate()) && endDate.isAfter(reservation.getStartDate())) {
+                conflicts.add(reservation);
+            }
+        }
+        return conflicts;
+    }
+
+    public long getRoomOccupancyDuration(Long roomId, LocalDateTime from, LocalDateTime to) {
+        if (roomId == null || from == null || to == null) {
+            throw new IllegalArgumentException("roomId, from and to must not be null");
+        }
+        if (!to.isAfter(from)) {
+            throw new IllegalArgumentException("to must be after from");
+        }
+
+        long totalMinutes = 0;
+        for (Reservation reservation : getConflictingReservations(roomId, from, to)) {
+            LocalDateTime actualStart = from.isAfter(reservation.getStartDate()) ? from : reservation.getStartDate();
+            LocalDateTime actualEnd = to.isBefore(reservation.getEndDate()) ? to : reservation.getEndDate();
+            totalMinutes += java.time.temporal.ChronoUnit.MINUTES.between(actualStart, actualEnd);
+        }
+        return totalMinutes;
+    }
+
+    public double getRoomOccupancyPercentage(Long roomId, LocalDateTime from, LocalDateTime to) {
+        if (roomId == null || from == null || to == null) {
+            throw new IllegalArgumentException("roomId, from and to must not be null");
+        }
+        if (!to.isAfter(from)) {
+            throw new IllegalArgumentException("to must be after from");
+        }
+
+        long totalMinutes = java.time.temporal.ChronoUnit.MINUTES.between(from, to);
+        if (totalMinutes == 0) {
+            return 0.0;
+        }
+        long occupiedMinutes = getRoomOccupancyDuration(roomId, from, to);
+        return (double) occupiedMinutes / totalMinutes * 100;
+    }
+
+    public boolean hasConflicts(Long roomId, LocalDateTime startDate, LocalDateTime endDate) {
+        return !getConflictingReservations(roomId, startDate, endDate).isEmpty();
+    }
+
     private boolean isRoomAvailable(Long roomId, LocalDateTime startDate, LocalDateTime endDate, Long excludedReservationId) {
         if (roomId == null || startDate == null || endDate == null) {
             throw new IllegalArgumentException("roomId, startDate and endDate must not be null");
