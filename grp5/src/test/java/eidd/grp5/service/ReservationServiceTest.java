@@ -320,4 +320,128 @@ class ReservationServiceTest {
 
         assertNotNull(exception);
     }
+
+    @Test
+    void shouldDetectConflictingReservations() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+        Room room = new Room(1, "A101", 10, "Conference room");
+
+        Reservation existing = new Reservation();
+        existing.setRoom(room);
+        existing.setStartDate(LocalDateTime.of(2026, 4, 10, 10, 0));
+        existing.setEndDate(LocalDateTime.of(2026, 4, 10, 11, 0));
+        service.createReservation(existing);
+
+        List<Reservation> conflicts = service.getConflictingReservations(
+                1L,
+                LocalDateTime.of(2026, 4, 10, 10, 30),
+                LocalDateTime.of(2026, 4, 10, 11, 30));
+
+        assertEquals(1, conflicts.size());
+        assertEquals(existing.getId(), conflicts.get(0).getId());
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenNoConflicts() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+        Room room = new Room(1, "A101", 10, "Conference room");
+
+        Reservation existing = new Reservation();
+        existing.setRoom(room);
+        existing.setStartDate(LocalDateTime.of(2026, 4, 10, 10, 0));
+        existing.setEndDate(LocalDateTime.of(2026, 4, 10, 11, 0));
+        service.createReservation(existing);
+
+        List<Reservation> conflicts = service.getConflictingReservations(
+                1L,
+                LocalDateTime.of(2026, 4, 10, 13, 0),
+                LocalDateTime.of(2026, 4, 10, 14, 0));
+
+        assertTrue(conflicts.isEmpty());
+    }
+
+    @Test
+    void shouldIgnoreCancelledReservationsInConflictDetection() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+        Room room = new Room(1, "A101", 10, "Conference room");
+
+        Reservation existing = new Reservation();
+        existing.setRoom(room);
+        existing.setStartDate(LocalDateTime.of(2026, 4, 10, 10, 0));
+        existing.setEndDate(LocalDateTime.of(2026, 4, 10, 11, 0));
+        Reservation saved = service.createReservation(existing);
+        service.cancelReservation(saved.getId());
+
+        List<Reservation> conflicts = service.getConflictingReservations(
+                1L,
+                LocalDateTime.of(2026, 4, 10, 10, 30),
+                LocalDateTime.of(2026, 4, 10, 11, 30));
+
+        assertTrue(conflicts.isEmpty());
+    }
+
+    @Test
+    void shouldCalculateRoomOccupancyDuration() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+        Room room = new Room(1, "A101", 10, "Conference room");
+
+        Reservation first = new Reservation();
+        first.setRoom(room);
+        first.setStartDate(LocalDateTime.of(2026, 4, 10, 10, 0));
+        first.setEndDate(LocalDateTime.of(2026, 4, 10, 11, 0));
+        service.createReservation(first);
+
+        Reservation second = new Reservation();
+        second.setRoom(room);
+        second.setStartDate(LocalDateTime.of(2026, 4, 10, 14, 0));
+        second.setEndDate(LocalDateTime.of(2026, 4, 10, 15, 30));
+        service.createReservation(second);
+
+        long occupiedMinutes = service.getRoomOccupancyDuration(
+                1L,
+                LocalDateTime.of(2026, 4, 10, 9, 0),
+                LocalDateTime.of(2026, 4, 10, 16, 0));
+
+        assertEquals(150, occupiedMinutes);
+    }
+
+    @Test
+    void shouldCalculateRoomOccupancyPercentage() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+        Room room = new Room(1, "A101", 10, "Conference room");
+
+        Reservation reservation = new Reservation();
+        reservation.setRoom(room);
+        reservation.setStartDate(LocalDateTime.of(2026, 4, 10, 10, 0));
+        reservation.setEndDate(LocalDateTime.of(2026, 4, 10, 12, 0));
+        service.createReservation(reservation);
+
+        double percentage = service.getRoomOccupancyPercentage(
+                1L,
+                LocalDateTime.of(2026, 4, 10, 10, 0),
+                LocalDateTime.of(2026, 4, 10, 14, 0));
+
+        assertEquals(50.0, percentage, 0.01);
+    }
+
+    @Test
+    void shouldDetectConflicts() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+        Room room = new Room(1, "A101", 10, "Conference room");
+
+        Reservation existing = new Reservation();
+        existing.setRoom(room);
+        existing.setStartDate(LocalDateTime.of(2026, 4, 10, 10, 0));
+        existing.setEndDate(LocalDateTime.of(2026, 4, 10, 11, 0));
+        service.createReservation(existing);
+
+        assertTrue(service.hasConflicts(1L, LocalDateTime.of(2026, 4, 10, 10, 30), LocalDateTime.of(2026, 4, 10, 11, 30)));
+        assertFalse(service.hasConflicts(1L, LocalDateTime.of(2026, 4, 10, 12, 0), LocalDateTime.of(2026, 4, 10, 13, 0)));
+    }
 }

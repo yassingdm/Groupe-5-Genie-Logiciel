@@ -58,7 +58,9 @@ public class ConsoleUI {
 					case "5" -> listRooms();
 					case "6" -> createReservation(scanner);
 					case "7" -> listReservations();
-					case "8" -> {
+					case "8" -> showReservationMenu(scanner);
+					case "9" -> showAvailabilityMenu(scanner);
+					case "10" -> {
 						System.out.println("Fermeture de la vue console...");
 						running = false;
 					}
@@ -78,7 +80,9 @@ public class ConsoleUI {
 		System.out.println("5. Lister les salles");
 		System.out.println("6. Creer une reservation simple");
 		System.out.println("7. Lister les reservations");
-		System.out.println("8. Quitter");
+		System.out.println("8. Recherche et gestion des reservations");
+		System.out.println("9. Verifier disponibilite et conflits");
+		System.out.println("10. Quitter");
 	}
 
 	private void printStats() {
@@ -262,5 +266,196 @@ public class ConsoleUI {
 			return "-";
 		}
 		return dateTime.format(DATE_TIME_FORMAT);
+	}
+
+	private void showReservationMenu(Scanner scanner) {
+		boolean inMenu = true;
+		while (inMenu) {
+			System.out.println();
+			System.out.println("=== Gestion Reservations ===");
+			System.out.println("1. Chercher par client");
+			System.out.println("2. Chercher par statut");
+			System.out.println("3. Chercher par reference");
+			System.out.println("4. Confirmer une reservation");
+			System.out.println("5. Annuler une reservation");
+			System.out.println("6. Retour au menu principal");
+			System.out.print("Choix: ");
+			String choice = scanner.nextLine().trim();
+
+			switch (choice) {
+				case "1" -> searchReservationsByClient(scanner);
+				case "2" -> searchReservationsByStatus(scanner);
+				case "3" -> searchReservationByReference(scanner);
+				case "4" -> confirmReservationFromMenu(scanner);
+				case "5" -> cancelReservationFromMenu(scanner);
+				case "6" -> inMenu = false;
+				default -> System.out.println("Choix invalide.");
+			}
+		}
+	}
+
+	private void showAvailabilityMenu(Scanner scanner) {
+		boolean inMenu = true;
+		while (inMenu) {
+			System.out.println();
+			System.out.println("=== Disponibilite et Conflits ===");
+			System.out.println("1. Verifier disponibilite d'une salle");
+			System.out.println("2. Afficher les conflits");
+			System.out.println("3. Voir taux d'occupation d'une salle");
+			System.out.println("4. Retour au menu principal");
+			System.out.print("Choix: ");
+			String choice = scanner.nextLine().trim();
+
+			switch (choice) {
+				case "1" -> checkRoomAvailability(scanner);
+				case "2" -> showConflictingReservations(scanner);
+				case "3" -> showRoomOccupancy(scanner);
+				case "4" -> inMenu = false;
+				default -> System.out.println("Choix invalide.");
+			}
+		}
+	}
+
+	private void searchReservationsByClient(Scanner scanner) {
+		listUsers();
+		long clientId = readLong(scanner, "ID client recherche: ");
+		List<Reservation> reservations = reservationService.getReservationsByClient(clientId);
+		if (reservations.isEmpty()) {
+			System.out.println("Aucune reservation pour ce client.");
+			return;
+		}
+		System.out.println("--- Reservations du client ===");
+		for (Reservation reservation : reservations) {
+			printReservationDetails(reservation);
+		}
+	}
+
+	private void searchReservationsByStatus(Scanner scanner) {
+		System.out.println("Statuts disponibles: PENDING, CONFIRMED, CANCELLED");
+		System.out.print("Statut recherche: ");
+		String statusInput = scanner.nextLine().trim().toUpperCase();
+		try {
+			Reservation.Status status = Reservation.Status.valueOf(statusInput);
+			List<Reservation> reservations = reservationService.getReservationsByStatus(status);
+			if (reservations.isEmpty()) {
+				System.out.println("Aucune reservation avec le statut : " + status);
+				return;
+			}
+			System.out.println("--- Reservations avec statut " + status + " ===");
+			for (Reservation reservation : reservations) {
+				printReservationDetails(reservation);
+			}
+		} catch (IllegalArgumentException e) {
+			System.out.println("Statut invalide.");
+		}
+	}
+
+	private void searchReservationByReference(Scanner scanner) {
+		System.out.print("Reference recherchee: ");
+		String reference = scanner.nextLine().trim();
+		var reservation = reservationService.getReservationByReference(reference);
+		if (reservation.isEmpty()) {
+			System.out.println("Reservation non trouvee.");
+			return;
+		}
+		System.out.println("--- Reservation trouvee ===");
+		printReservationDetails(reservation.get());
+	}
+
+	private void confirmReservationFromMenu(Scanner scanner) {
+		listReservations();
+		long id = readLong(scanner, "ID reservation a confirmer: ");
+		if (reservationService.confirmReservation(id)) {
+			System.out.println("Reservation confirmee.");
+		} else {
+			System.out.println("Reservation non trouvee.");
+		}
+	}
+
+	private void cancelReservationFromMenu(Scanner scanner) {
+		listReservations();
+		long id = readLong(scanner, "ID reservation a annuler: ");
+		if (reservationService.cancelReservation(id)) {
+			System.out.println("Reservation annulee.");
+		} else {
+			System.out.println("Reservation non trouvee.");
+		}
+	}
+
+	private void checkRoomAvailability(Scanner scanner) {
+		listRooms();
+		long roomId = readLong(scanner, "ID salle: ");
+		LocalDateTime startDate = readDateTime(scanner, "Debut (format yyyy-MM-dd HH:mm): ");
+		LocalDateTime endDate = readDateTime(scanner, "Fin (format yyyy-MM-dd HH:mm): ");
+
+		if (!endDate.isAfter(startDate)) {
+			System.out.println("La fin doit etre apres le debut.");
+			return;
+		}
+
+		if (reservationService.isRoomAvailable(roomId, startDate, endDate)) {
+			System.out.println("La salle est DISPONIBLE pour cette periode.");
+		} else {
+			System.out.println("La salle est OCCUPEE pour cette periode.");
+		}
+	}
+
+	private void showConflictingReservations(Scanner scanner) {
+		listRooms();
+		long roomId = readLong(scanner, "ID salle: ");
+		LocalDateTime startDate = readDateTime(scanner, "Debut (format yyyy-MM-dd HH:mm): ");
+		LocalDateTime endDate = readDateTime(scanner, "Fin (format yyyy-MM-dd HH:mm): ");
+
+		if (!endDate.isAfter(startDate)) {
+			System.out.println("La fin doit etre apres le debut.");
+			return;
+		}
+
+		List<Reservation> conflicts = reservationService.getConflictingReservations(roomId, startDate, endDate);
+		if (conflicts.isEmpty()) {
+			System.out.println("Aucun conflit pour cette periode.");
+			return;
+		}
+		System.out.println("--- Reservations en conflit ===");
+		for (Reservation reservation : conflicts) {
+			printReservationDetails(reservation);
+		}
+	}
+
+	private void showRoomOccupancy(Scanner scanner) {
+		listRooms();
+		long roomId = readLong(scanner, "ID salle: ");
+		LocalDateTime startDate = readDateTime(scanner, "Debut (format yyyy-MM-dd HH:mm): ");
+		LocalDateTime endDate = readDateTime(scanner, "Fin (format yyyy-MM-dd HH:mm): ");
+
+		if (!endDate.isAfter(startDate)) {
+			System.out.println("La fin doit etre apres le debut.");
+			return;
+		}
+
+		long occupiedMinutes = reservationService.getRoomOccupancyDuration(roomId, startDate, endDate);
+		double percentage = reservationService.getRoomOccupancyPercentage(roomId, startDate, endDate);
+		System.out.println("--- Taux d'occupation ===");
+		System.out.println("Duree occupee: " + occupiedMinutes + " minutes");
+		System.out.printf("Pourcentage d'occupation: %.2f%%\n", percentage);
+	}
+
+	private void printReservationDetails(Reservation reservation) {
+		String clientName = reservation.getClient() == null ? "-" : reservation.getClient().getName();
+		String roomName = reservation.getRoom() == null ? "-" : reservation.getRoom().getName();
+		String start = formatDateTime(reservation.getStartDate());
+		String end = formatDateTime(reservation.getEndDate());
+		String status = reservation.getStatus() == null ? "-" : reservation.getStatus().name();
+		String reference = reservation.getReference() == null ? "-" : reservation.getReference();
+		int participants = reservation.getParticipantCount();
+		String purpose = reservation.getPurpose() == null ? "-" : reservation.getPurpose();
+
+		System.out.println("[" + reference + "] ID=" + reservation.getId());
+		System.out.println("  Client: " + clientName);
+		System.out.println("  Salle: " + roomName);
+		System.out.println("  Periode: " + start + " -> " + end);
+		System.out.println("  Participants: " + participants);
+		System.out.println("  Motif: " + purpose);
+		System.out.println("  Statut: " + status);
 	}
 }

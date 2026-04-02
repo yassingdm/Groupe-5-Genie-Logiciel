@@ -26,7 +26,7 @@ class ConsoleUITest {
                 "4", "Room A", "20", "Salle principale",
                 "6", "1", "1", "2026-03-26T14:00", "2026-03-26T15:00",
                 "7",
-                "8") + "\n";
+            "10") + "\n";
 
         String output = runConsoleSession(input);
 
@@ -41,14 +41,14 @@ class ConsoleUITest {
     @Test
     void shouldShowBasicValidationMessages() {
         String input = String.join("\n",
-                "9",
+            "11",
                 "6",
                 "2", "", "john@mail.com",
                 "4", "Salle TP", "abc", "description",
                 "3",
                 "5",
                 "7",
-                "8") + "\n";
+            "10") + "\n";
 
         String output = runConsoleSession(input);
 
@@ -67,7 +67,7 @@ class ConsoleUITest {
                 "2", "Bob", "bob@mail.com",
                 "4", "Room B", "10", "Desc",
                 "6", "x", "1", "y", "1", "bad-date", "2026-03-26 14:00", "oops", "2026-03-26 15:00",
-                "8") + "\n";
+            "10") + "\n";
 
         String output = runConsoleSession(input);
 
@@ -83,7 +83,7 @@ class ConsoleUITest {
                 "2", "Carol", "carol@mail.com",
                 "4", "Room C", "8", "Desc",
                 "6", "1", "1", "2026-03-26T15:00", "2026-03-26T14:00",
-                "8") + "\n";
+            "10") + "\n";
 
         String output = runConsoleSession(input);
 
@@ -94,7 +94,7 @@ class ConsoleUITest {
     void shouldPrintStatsAndExitMessage() {
         String input = String.join("\n",
                 "1",
-                "8") + "\n";
+            "10") + "\n";
 
         String output = runConsoleSession(input);
 
@@ -108,7 +108,7 @@ class ConsoleUITest {
     void shouldRejectRoomWithNonPositiveCapacity() {
         String input = String.join("\n",
                 "4", "Room D", "0", "Desc",
-                "8") + "\n";
+            "10") + "\n";
 
         String output = runConsoleSession(input);
 
@@ -119,7 +119,7 @@ class ConsoleUITest {
     void shouldRejectRoomWhenRequiredFieldsAreMissing() {
         String input = String.join("\n",
                 "4", "", "", "Description ignoree",
-                "8") + "\n";
+            "10") + "\n";
 
         String output = runConsoleSession(input);
 
@@ -133,7 +133,7 @@ class ConsoleUITest {
                 "4", "Room G", "30", "Grande salle",
                 "3",
                 "5",
-                "8") + "\n";
+            "10") + "\n";
 
         String output = runConsoleSession(input);
 
@@ -149,7 +149,7 @@ class ConsoleUITest {
                 "2", "Dan", "dan@mail.com",
                 "4", "Room E", "6", "Desc",
                 "6", "99", "99", "2026-03-26T10:00", "2026-03-26T11:00",
-                "8") + "\n";
+            "10") + "\n";
 
         String output = runConsoleSession(input);
 
@@ -163,7 +163,7 @@ class ConsoleUITest {
                 "4", "Room F", "12", "Desc",
                 "6", "1", "1", "2026-03-26T10:00", "2026-03-26T11:00",
                 "6", "1", "1", "2026-03-26T10:30", "2026-03-26T11:30",
-                "8") + "\n";
+            "10") + "\n";
 
         String output = runConsoleSession(input);
 
@@ -184,7 +184,7 @@ class ConsoleUITest {
         ConsoleUI ui = new ConsoleUI(userService, roomService, reservationService);
         String input = String.join("\n",
                 "7",
-                "8") + "\n";
+            "10") + "\n";
 
         String output = runConsoleSession(ui, input);
 
