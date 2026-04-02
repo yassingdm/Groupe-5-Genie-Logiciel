@@ -444,4 +444,72 @@ class ReservationServiceTest {
         assertTrue(service.hasConflicts(1L, LocalDateTime.of(2026, 4, 10, 10, 30), LocalDateTime.of(2026, 4, 10, 11, 30)));
         assertFalse(service.hasConflicts(1L, LocalDateTime.of(2026, 4, 10, 12, 0), LocalDateTime.of(2026, 4, 10, 13, 0)));
     }
+
+    @Test
+    void shouldThrowWhenReservationHasPartialDates() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+        Reservation reservation = new Reservation();
+        reservation.setStartDate(LocalDateTime.of(2026, 4, 12, 10, 0));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> service.createReservation(reservation));
+        assertNotNull(exception);
+    }
+
+    @Test
+    void shouldThrowWhenParticipantCountIsNegative() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+        Reservation reservation = new Reservation();
+        reservation.setParticipantCount(-1);
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> service.createReservation(reservation));
+        assertNotNull(exception);
+    }
+
+    @Test
+    void shouldAllowUpdateWhenOverlappingSameReservationId() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+        Room room = new Room(1, "A101", 10, "Conference room");
+
+        Reservation reservation = new Reservation();
+        reservation.setRoom(room);
+        reservation.setStartDate(LocalDateTime.of(2026, 4, 13, 10, 0));
+        reservation.setEndDate(LocalDateTime.of(2026, 4, 13, 11, 0));
+        Reservation saved = service.createReservation(reservation);
+
+        saved.setReference(null);
+        Reservation updated = service.updateReservation(saved);
+
+        assertEquals("RES-001", updated.getReference());
+    }
+
+    @Test
+    void shouldThrowWhenFilteringByRoomWithNullId() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+
+        assertThrows(IllegalArgumentException.class, () -> service.getReservationsByRoom(null));
+    }
+
+    @Test
+    void shouldThrowWhenFilteringByRoomAndPeriodWithNullValues() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.getReservationsByRoomAndPeriod(1L, null, LocalDateTime.now()));
+    }
+
+    @Test
+    void shouldThrowWhenCheckingAvailabilityWithNullRoomId() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.isRoomAvailable(null, LocalDateTime.now(), LocalDateTime.now().plusHours(1)));
+    }
 }

@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import eidd.grp5.app.App;
 
-public class AppTest {
+class AppTest {
     @Test
     void testApp() {
         assertTrue(true);

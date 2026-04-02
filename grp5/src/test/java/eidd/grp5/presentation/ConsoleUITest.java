@@ -196,6 +196,56 @@ class ConsoleUITest {
         assertTrue(output.contains("statut=-"));
     }
 
+    @Test
+    void shouldHandleReservationManagementMenuFlows() {
+        String input = String.join("\n",
+                "2", "Alice", "alice@mail.com",
+                "4", "Room A", "10", "Desc",
+                "6", "1", "1", "2026-03-26T10:00", "2026-03-26T11:00",
+                "8",
+                "2", "invalid",
+                "3", "REF-404",
+                "4", "1",
+                "5", "1",
+                "1", "1",
+                "6",
+            "10") + "\n";
+
+        String output = runConsoleSession(input);
+
+        assertTrue(output.contains("Statut invalide."));
+        assertTrue(output.contains("Reservation non trouvee."));
+        assertTrue(output.contains("Reservation confirmee."));
+        assertTrue(output.contains("Reservation annulee."));
+        assertTrue(output.contains("--- Reservations du client ==="));
+    }
+
+    @Test
+    void shouldHandleAvailabilityMenuBranches() {
+        String input = String.join("\n",
+                "2", "Bob", "bob@mail.com",
+                "4", "Room B", "8", "Desc",
+                "6", "1", "1", "2026-03-26T10:00", "2026-03-26T11:00",
+                "9",
+                "1", "1", "2026-03-26 12:00", "2026-03-26 11:00",
+                "1", "1", "2026-03-26 10:30", "2026-03-26 10:45",
+                "1", "1", "2026-03-26 11:30", "2026-03-26 12:00",
+                "2", "1", "2026-03-26 12:00", "2026-03-26 12:30",
+                "2", "1", "2026-03-26 10:30", "2026-03-26 10:45",
+                "3", "1", "2026-03-26 09:00", "2026-03-26 12:00",
+                "4",
+            "10") + "\n";
+
+        String output = runConsoleSession(input);
+
+        assertTrue(output.contains("La fin doit etre apres le debut."));
+        assertTrue(output.contains("La salle est OCCUPEE"));
+        assertTrue(output.contains("La salle est DISPONIBLE"));
+        assertTrue(output.contains("Aucun conflit pour cette periode."));
+        assertTrue(output.contains("--- Reservations en conflit ==="));
+        assertTrue(output.contains("--- Taux d'occupation ==="));
+    }
+
     private String runConsoleSession(String input) {
         return runConsoleSession(ConsoleUI.createDefault(), input);
     }
