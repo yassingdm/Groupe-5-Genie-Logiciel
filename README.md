@@ -1,5 +1,5 @@
 ![CI](https://github.com/yassingdm/Groupe-5-Genie-Logiciel/actions/workflows/ci.yml/badge.svg)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=yassingdm_Groupe-5-Genie-Logiciel&metric=coverage)](https://sonarcloud.io/summary/new_code?id=yassingdm_Groupe-5-Genie-Logiciel)
+[![SonarQube Cloud](https://sonarcloud.io/images/project_badges/sonarcloud-light.svg)](https://sonarcloud.io/summary/new_code?id=yassingdm_Groupe-5-Genie-Logiciel)
 
 # Groupe-5-Genie-Logiciel
 
