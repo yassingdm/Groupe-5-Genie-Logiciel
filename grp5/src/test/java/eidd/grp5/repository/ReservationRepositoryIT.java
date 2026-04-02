@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 import eidd.grp5.model.Reservation;
+import eidd.grp5.model.User;
 
 class ReservationRepositoryIT {
 
@@ -80,5 +81,57 @@ class ReservationRepositoryIT {
 
         assertEquals(1L, repository.count());
         assertEquals(1, repository.findAll().size());
+    }
+
+    @Test
+    void shouldFindReservationsByClientId() {
+        User alice = new User("Alice", "alice@mail.com");
+        alice.setId(1L);
+        User bob = new User("Bob", "bob@mail.com");
+        bob.setId(2L);
+
+        Reservation first = new Reservation();
+        first.setClient(alice);
+        repository.save(first);
+
+        Reservation second = new Reservation();
+        second.setClient(alice);
+        repository.save(second);
+
+        Reservation third = new Reservation();
+        third.setClient(bob);
+        repository.save(third);
+
+        List<Reservation> result = repository.findByClientId(1L);
+
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void shouldFindReservationsByStatus() {
+        Reservation pending = new Reservation();
+        pending.setStatus(Reservation.Status.PENDING);
+        repository.save(pending);
+
+        Reservation confirmed = new Reservation();
+        confirmed.setStatus(Reservation.Status.CONFIRMED);
+        repository.save(confirmed);
+
+        List<Reservation> result = repository.findByStatus(Reservation.Status.CONFIRMED);
+
+        assertEquals(1, result.size());
+        assertEquals(Reservation.Status.CONFIRMED, result.get(0).getStatus());
+    }
+
+    @Test
+    void shouldFindReservationByReference() {
+        Reservation reservation = new Reservation();
+        reservation.setReference("RES-ABC");
+        repository.save(reservation);
+
+        Optional<Reservation> found = repository.findByReference("RES-ABC");
+
+        assertTrue(found.isPresent());
+        assertEquals("RES-ABC", found.get().getReference());
     }
 }
