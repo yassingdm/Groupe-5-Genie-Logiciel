@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import eidd.grp5.model.Reservation;
 import eidd.grp5.model.Room;
+import eidd.grp5.model.User;
 import eidd.grp5.repository.ReservationRepository;
 
 class ReservationServiceTest {
@@ -27,6 +28,7 @@ class ReservationServiceTest {
         assertNotNull(saved.getCreationDate());
         assertEquals(Reservation.Status.PENDING, saved.getStatus());
         assertNotNull(saved.getId());
+        assertEquals("RES-001", saved.getReference());
     }
 
     @Test
@@ -49,11 +51,27 @@ class ReservationServiceTest {
         LocalDateTime fixedDate = LocalDateTime.of(2026, 3, 19, 10, 30);
         reservation.setCreationDate(fixedDate);
         reservation.setStatus(Reservation.Status.CONFIRMED);
+        reservation.setReference("CUSTOM-123");
 
         Reservation saved = service.createReservation(reservation);
 
         assertEquals(fixedDate, saved.getCreationDate());
         assertEquals(Reservation.Status.CONFIRMED, saved.getStatus());
+        assertEquals("CUSTOM-123", saved.getReference());
+    }
+
+    @Test
+    void shouldGenerateReferenceWhenUpdatingReservationWithoutOne() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+        Reservation reservation = new Reservation();
+
+        Reservation saved = service.createReservation(reservation);
+        saved.setReference(null);
+
+        Reservation updated = service.updateReservation(saved);
+
+        assertEquals("RES-001", updated.getReference());
     }
 
     @Test
@@ -222,6 +240,70 @@ class ReservationServiceTest {
 
         assertEquals(1, result.size());
         assertEquals(inside.getId(), result.get(0).getId());
+    }
+
+    @Test
+    void shouldGetReservationsByClient() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+
+        User alice = new User("Alice", "alice@mail.com");
+        alice.setId(1L);
+        User bob = new User("Bob", "bob@mail.com");
+        bob.setId(2L);
+
+        Reservation first = new Reservation();
+        first.setClient(alice);
+        service.createReservation(first);
+
+        Reservation second = new Reservation();
+        second.setClient(alice);
+        service.createReservation(second);
+
+        Reservation third = new Reservation();
+        third.setClient(bob);
+        service.createReservation(third);
+
+        List<Reservation> aliceReservations = service.getReservationsByClient(1L);
+
+        assertEquals(2, aliceReservations.size());
+    }
+
+    @Test
+    void shouldGetReservationsByStatus() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+
+        Reservation pending = new Reservation();
+        pending.setStatus(Reservation.Status.PENDING);
+        service.createReservation(pending);
+
+        Reservation confirmed = new Reservation();
+        confirmed.setStatus(Reservation.Status.CONFIRMED);
+        service.createReservation(confirmed);
+
+        Reservation cancelled = new Reservation();
+        cancelled.setStatus(Reservation.Status.CANCELLED);
+        service.createReservation(cancelled);
+
+        List<Reservation> confirmedReservations = service.getReservationsByStatus(Reservation.Status.CONFIRMED);
+
+        assertEquals(1, confirmedReservations.size());
+        assertEquals(Reservation.Status.CONFIRMED, confirmedReservations.get(0).getStatus());
+    }
+
+    @Test
+    void shouldFindReservationByReference() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+
+        Reservation reservation = new Reservation();
+        reservation.setReference("RES-777");
+
+        Reservation saved = service.createReservation(reservation);
+
+        assertTrue(service.getReservationByReference("RES-777").isPresent());
+        assertEquals(saved.getId(), service.getReservationByReference("RES-777").orElseThrow().getId());
     }
 
     @Test

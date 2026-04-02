@@ -27,19 +27,18 @@ public class ReservationService {
             throw new IllegalStateException("Room is not available for the requested time slot");
         }
 
-        // valeurs par défaut basiques
         if (reservation.getCreationDate() == null) {
             reservation.setCreationDate(LocalDateTime.now());
         }
         if (reservation.getStatus() == null) {
             reservation.setStatus(Reservation.Status.PENDING);
         }
+        if (isBlank(reservation.getReference())) {
+            reservation.setReference(generateReference(reservation));
+        }
         return reservationRepository.save(reservation);
     }
 
-    /**
-     * Met à jour une réservation existante.
-     */
     public Reservation updateReservation(Reservation reservation) {
         if (reservation.getId() == null) {
             throw new IllegalArgumentException("Reservation id must not be null for update");
@@ -52,12 +51,13 @@ public class ReservationService {
             throw new IllegalStateException("Room is not available for the requested time slot");
         }
 
+        if (isBlank(reservation.getReference())) {
+            reservation.setReference(generateReference(reservation));
+        }
+
         return reservationRepository.save(reservation);
     }
 
-    /**
-     * Annule une réservation en changeant son statut.
-     */
     public boolean cancelReservation(Long id) {
         Optional<Reservation> optional = reservationRepository.findById(id);
         if (optional.isEmpty()) {
@@ -90,6 +90,18 @@ public class ReservationService {
 
     public Optional<Reservation> getReservationById(Long id) {
         return reservationRepository.findById(id);
+    }
+
+    public Optional<Reservation> getReservationByReference(String reference) {
+        return reservationRepository.findByReference(reference);
+    }
+
+    public List<Reservation> getReservationsByClient(Long clientId) {
+        return reservationRepository.findByClientId(clientId);
+    }
+
+    public List<Reservation> getReservationsByStatus(Reservation.Status status) {
+        return reservationRepository.findByStatus(status);
     }
 
     public List<Reservation> getReservationsByRoom(Long roomId) {
@@ -187,5 +199,19 @@ public class ReservationService {
                 && reservation.getParticipantCount() > reservation.getRoom().getCapacity()) {
             throw new IllegalArgumentException("participantCount exceeds room capacity");
         }
+    }
+
+    private String generateReference(Reservation reservation) {
+        long sequence;
+        if (reservation.getId() != null) {
+            sequence = reservation.getId();
+        } else {
+            sequence = reservationRepository.count() + 1;
+        }
+        return String.format("RES-%03d", sequence);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }
