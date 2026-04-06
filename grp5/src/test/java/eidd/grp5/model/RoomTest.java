@@ -2,6 +2,7 @@ package eidd.grp5.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 
 class RoomTest {
@@ -31,9 +32,8 @@ class RoomTest {
     }
 
     @Test
-    void shouldHandleZeroCapacityAsEdgeCase() {
-        Room room = new Room(3, "C303", 0, "Capacité nulle");
-
-        assertEquals(0, room.getCapacity());
+    void shouldThrowWhenCapacityIsZero() {
+        // Correction : On attend une exception car la capacité 0 est invalide
+        assertThrows(IllegalArgumentException.class, () -> new Room(3, "C303", 0, "Capacité nulle"));
     }
 }

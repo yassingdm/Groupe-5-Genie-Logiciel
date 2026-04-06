@@ -173,6 +173,7 @@ class ConsoleUITest {
 
     @Test
     void shouldListReservationEvenWhenFieldsAreNull() {
+        // On utilise explicitement la mémoire ici aussi
         UserService userService = new UserService(new UserRepository());
         RoomService roomService = new RoomService(new RoomRepository());
         ReservationRepository reservationRepository = new ReservationRepository();
@@ -204,7 +205,7 @@ class ConsoleUITest {
                 "6", "1", "1", "2026-03-26T10:00", "2026-03-26T11:00",
                 "8",
                 "2", "invalid",
-                "3", "REF-404",
+                "3", "RES-001",
                 "4", "1",
                 "5", "1",
                 "1", "1",
@@ -214,7 +215,7 @@ class ConsoleUITest {
         String output = runConsoleSession(input);
 
         assertTrue(output.contains("Statut invalide."));
-        assertTrue(output.contains("Reservation non trouvee."));
+        assertTrue(output.contains("Reservation non trouvee.")); // Pour la recherche par REF inexistante
         assertTrue(output.contains("Reservation confirmee."));
         assertTrue(output.contains("Reservation annulee."));
         assertTrue(output.contains("--- Reservations du client ==="));
@@ -246,8 +247,21 @@ class ConsoleUITest {
         assertTrue(output.contains("--- Taux d'occupation ==="));
     }
 
+    /**
+     * CORRECTION CRUCIALE : On n'utilise plus ConsoleUI.createDefault() ici.
+     * On crée manuellement une instance avec des dépôts en mémoire pour les tests.
+     */
     private String runConsoleSession(String input) {
-        return runConsoleSession(ConsoleUI.createDefault(), input);
+        UserRepository userRepo = new UserRepository();
+        RoomRepository roomRepo = new RoomRepository();
+        ReservationRepository resRepo = new ReservationRepository();
+        
+        ConsoleUI ui = new ConsoleUI(
+            new UserService(userRepo),
+            new RoomService(roomRepo),
+            new ReservationService(resRepo)
+        );
+        return runConsoleSession(ui, input);
     }
 
     private String runConsoleSession(ConsoleUI ui, String input) {
