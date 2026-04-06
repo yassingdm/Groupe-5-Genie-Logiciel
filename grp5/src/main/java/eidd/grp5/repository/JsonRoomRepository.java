@@ -37,7 +37,7 @@ public class JsonRoomRepository implements Repository<Room> {
         try (Writer writer = new OutputStreamWriter(new FileOutputStream(FILE_PATH), StandardCharsets.UTF_8)) {
             gson.toJson(rooms, writer);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new java.io.UncheckedIOException("Erreur d'écriture du fichier", e);
         }
     }
 

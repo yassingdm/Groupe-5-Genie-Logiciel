@@ -37,7 +37,7 @@ public class JsonUserRepository implements Repository<User> {
         try (Writer writer = new OutputStreamWriter(new FileOutputStream(FILE_PATH), StandardCharsets.UTF_8)) {
             gson.toJson(users, writer);
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new java.io.UncheckedIOException("Erreur d'écriture du fichier", e);
         }
     }
 
