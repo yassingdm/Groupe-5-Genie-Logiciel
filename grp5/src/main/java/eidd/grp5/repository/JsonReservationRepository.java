@@ -44,8 +44,8 @@ public class JsonReservationRepository implements IReservationRepository {
     private void saveToFile() {
         try (Writer writer = new OutputStreamWriter(new FileOutputStream(FILE_PATH), StandardCharsets.UTF_8)) {
             gson.toJson(reservations, writer);
-        } catch (IOException e) {
-            e.printStackTrace();
+        }  catch (IOException e) {
+            throw new RuntimeException("Erreur d'écriture du fichier", e);
         }
     }
 
