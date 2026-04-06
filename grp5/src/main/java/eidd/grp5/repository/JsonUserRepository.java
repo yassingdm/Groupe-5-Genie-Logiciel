@@ -29,7 +29,7 @@ public class JsonUserRepository implements Repository<User> {
             users = gson.fromJson(reader, listType);
             if (users == null) users = new ArrayList<>();
         } catch (IOException e) {
-            throw new RuntimeException("Erreur d'écriture du fichier", e);
+            throw new java.io.UncheckedIOException("Erreur de lecture du fichier", e);
         }
     }
 

@@ -29,7 +29,7 @@ public class JsonRoomRepository implements Repository<Room> {
             rooms = gson.fromJson(reader, listType);
             if (rooms == null) rooms = new ArrayList<>();
         } catch (IOException e) {
-            throw new RuntimeException("Erreur d'écriture du fichier", e);
+            throw new java.io.UncheckedIOException("Erreur de lecture du fichier", e);
         }
     }
 
