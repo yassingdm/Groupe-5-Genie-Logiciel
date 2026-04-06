@@ -12,6 +12,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <sonar.coverage.exclusions>src/test/java/**/*</sonar.coverage.exclusions>
   </properties>
 
   <dependencies>
