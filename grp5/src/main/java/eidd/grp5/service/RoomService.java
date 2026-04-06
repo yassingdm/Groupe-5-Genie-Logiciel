@@ -4,13 +4,14 @@ import java.util.List;
 import java.util.Optional;
 
 import eidd.grp5.model.Room;
-import eidd.grp5.repository.RoomRepository;
+import eidd.grp5.repository.Repository; 
 
 public class RoomService {
 
-    private final RoomRepository roomRepository;
+    
+    private final Repository<Room> roomRepository;
 
-    public RoomService(RoomRepository roomRepository) {
+    public RoomService(Repository<Room> roomRepository) {
         this.roomRepository = roomRepository;
     }
 

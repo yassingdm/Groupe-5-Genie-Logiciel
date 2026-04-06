@@ -10,9 +10,11 @@ import java.util.Scanner;
 import eidd.grp5.model.Reservation;
 import eidd.grp5.model.Room;
 import eidd.grp5.model.User;
-import eidd.grp5.repository.ReservationRepository;
-import eidd.grp5.repository.RoomRepository;
-import eidd.grp5.repository.UserRepository;
+import eidd.grp5.repository.Repository;
+import eidd.grp5.repository.IReservationRepository;
+import eidd.grp5.repository.JsonUserRepository;
+import eidd.grp5.repository.JsonRoomRepository;
+import eidd.grp5.repository.JsonReservationRepository;
 import eidd.grp5.service.ReservationService;
 import eidd.grp5.service.RoomService;
 import eidd.grp5.service.UserService;
@@ -32,9 +34,9 @@ public class ConsoleUI {
 	}
 
 	public static ConsoleUI createDefault() {
-		UserRepository userRepository = new UserRepository();
-		RoomRepository roomRepository = new RoomRepository();
-		ReservationRepository reservationRepository = new ReservationRepository();
+		Repository<User> userRepository = new JsonUserRepository();
+		Repository<Room> roomRepository = new JsonRoomRepository();
+		IReservationRepository reservationRepository = new JsonReservationRepository();
 
 		return new ConsoleUI(
 				new UserService(userRepository),

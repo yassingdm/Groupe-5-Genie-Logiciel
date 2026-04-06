@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-public class ReservationRepository implements Repository<Reservation> {
+public class ReservationRepository implements IReservationRepository {
 
     private final List<Reservation> reservations = new ArrayList<>();
     

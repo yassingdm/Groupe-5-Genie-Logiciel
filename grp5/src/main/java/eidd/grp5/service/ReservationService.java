@@ -6,19 +6,18 @@ import java.util.List;
 import java.util.Optional;
 
 import eidd.grp5.model.Reservation;
-import eidd.grp5.repository.ReservationRepository;
+import eidd.grp5.repository.IReservationRepository; 
 
 public class ReservationService {
 
-    private final ReservationRepository reservationRepository;
+    
+    private final IReservationRepository reservationRepository;
 
-    public ReservationService(ReservationRepository reservationRepository) {
+    public ReservationService(IReservationRepository reservationRepository) {
         this.reservationRepository = reservationRepository;
     }
 
-    /**
-     * Crée une nouvelle réservation avec les informations minimales.
-     */
+    
     public Reservation createReservation(Reservation reservation) {
         validateReservation(reservation);
 

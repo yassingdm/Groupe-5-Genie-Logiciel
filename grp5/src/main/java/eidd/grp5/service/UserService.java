@@ -4,13 +4,14 @@ import java.util.List;
 import java.util.Optional;
 
 import eidd.grp5.model.User;
-import eidd.grp5.repository.UserRepository;
+import eidd.grp5.repository.Repository; 
 
 public class UserService {
 
-    private final UserRepository userRepository;
+    
+    private final Repository<User> userRepository;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(Repository<User> userRepository) {
         this.userRepository = userRepository;
     }
 
