@@ -6,6 +6,7 @@ import eidd.grp5.model.User;
 
 import java.io.*;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -20,19 +21,20 @@ public class JsonUserRepository implements Repository<User> {
     }
 
     private void loadFromFile() {
-        try (Reader reader = new FileReader(FILE_PATH)) {
+        File file = new File(FILE_PATH);
+        if (!file.exists()) return;
+        
+        try (Reader reader = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)) {
             Type listType = new TypeToken<ArrayList<User>>(){}.getType();
             users = gson.fromJson(reader, listType);
             if (users == null) users = new ArrayList<>();
-        } catch (FileNotFoundException e) {
-            users = new ArrayList<>(); 
         } catch (IOException e) {
-            e.printStackTrace();
+            users = new ArrayList<>();
         }
     }
 
     private void saveToFile() {
-        try (Writer writer = new FileWriter(FILE_PATH)) {
+        try (Writer writer = new OutputStreamWriter(new FileOutputStream(FILE_PATH), StandardCharsets.UTF_8)) {
             gson.toJson(users, writer);
         } catch (IOException e) {
             e.printStackTrace();
@@ -42,17 +44,21 @@ public class JsonUserRepository implements Repository<User> {
     @Override
     public User save(User entity) {
         if (entity.getId() == null) {
-            entity.setId(users.isEmpty() ? 1L : users.get(users.size() - 1).getId() + 1);
+            long maxId = users.stream().mapToLong(u -> u.getId() != null ? u.getId() : 0).max().orElse(0L);
+            entity.setId(maxId + 1);
             users.add(entity);
         } else {
+            boolean found = false;
             for (int i = 0; i < users.size(); i++) {
-                if (users.get(i).getId().equals(entity.getId())) {
+                if (entity.getId().equals(users.get(i).getId())) {
                     users.set(i, entity);
+                    found = true;
                     break;
                 }
             }
+            if (!found) users.add(entity);
         }
-        saveToFile(); 
+        saveToFile();
         return entity;
     }
 
@@ -61,12 +67,12 @@ public class JsonUserRepository implements Repository<User> {
 
     @Override
     public Optional<User> findById(Long id) {
-        return users.stream().filter(u -> u.getId().equals(id)).findFirst();
+        return users.stream().filter(u -> id.equals(u.getId())).findFirst();
     }
 
     @Override
     public boolean delete(Long id) {
-        boolean removed = users.removeIf(u -> u.getId().equals(id));
+        boolean removed = users.removeIf(u -> id.equals(u.getId()));
         if (removed) saveToFile();
         return removed;
     }

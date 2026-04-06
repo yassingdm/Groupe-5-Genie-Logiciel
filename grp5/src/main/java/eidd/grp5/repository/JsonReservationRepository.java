@@ -6,44 +6,43 @@ import eidd.grp5.model.Reservation;
 
 import java.io.*;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Predicate;
 
 public class JsonReservationRepository implements IReservationRepository {
     private static final String FILE_PATH = "reservations.json";
-    private Gson gson;
+    private final Gson gson;
     private List<Reservation> reservations = new ArrayList<>();
 
     public JsonReservationRepository() {
-        
-        gson = new GsonBuilder()
-            .registerTypeAdapter(LocalDateTime.class, (JsonSerializer<LocalDateTime>) (src, typeOfSrc, context) -> 
+        this.gson = new GsonBuilder()
+            .registerTypeAdapter(LocalDateTime.class, (JsonSerializer<LocalDateTime>) (src, t, c) -> 
                 new JsonPrimitive(src.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)))
-            .registerTypeAdapter(LocalDateTime.class, (JsonDeserializer<LocalDateTime>) (json, typeOfT, context) -> 
-                LocalDateTime.parse(json.getAsString(), DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+            .registerTypeAdapter(LocalDateTime.class, (JsonDeserializer<LocalDateTime>) (j, t, c) -> 
+                LocalDateTime.parse(j.getAsString(), DateTimeFormatter.ISO_LOCAL_DATE_TIME))
             .create();
-        
         loadFromFile();
     }
 
     private void loadFromFile() {
-        try (Reader reader = new FileReader(FILE_PATH)) {
+        File file = new File(FILE_PATH);
+        if (!file.exists()) return;
+
+        try (Reader reader = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)) {
             Type listType = new TypeToken<ArrayList<Reservation>>(){}.getType();
             reservations = gson.fromJson(reader, listType);
             if (reservations == null) reservations = new ArrayList<>();
-        } catch (FileNotFoundException e) {
-            reservations = new ArrayList<>();
         } catch (IOException e) {
-            e.printStackTrace();
+            reservations = new ArrayList<>();
         }
     }
 
     private void saveToFile() {
-        try (Writer writer = new FileWriter(FILE_PATH)) {
+        try (Writer writer = new OutputStreamWriter(new FileOutputStream(FILE_PATH), StandardCharsets.UTF_8)) {
             gson.toJson(reservations, writer);
         } catch (IOException e) {
             e.printStackTrace();
@@ -53,15 +52,19 @@ public class JsonReservationRepository implements IReservationRepository {
     @Override
     public Reservation save(Reservation entity) {
         if (entity.getId() == null) {
-            entity.setId(reservations.isEmpty() ? 1L : reservations.get(reservations.size() - 1).getId() + 1);
+            long maxId = reservations.stream().mapToLong(r -> r.getId() != null ? r.getId() : 0).max().orElse(0L);
+            entity.setId(maxId + 1);
             reservations.add(entity);
         } else {
+            boolean found = false;
             for (int i = 0; i < reservations.size(); i++) {
-                if (reservations.get(i).getId().equals(entity.getId())) {
+                if (entity.getId().equals(reservations.get(i).getId())) {
                     reservations.set(i, entity);
+                    found = true;
                     break;
                 }
             }
+            if (!found) reservations.add(entity);
         }
         saveToFile();
         return entity;
@@ -72,12 +75,12 @@ public class JsonReservationRepository implements IReservationRepository {
 
     @Override
     public Optional<Reservation> findById(Long id) {
-        return reservations.stream().filter(r -> r.getId().equals(id)).findFirst();
+        return reservations.stream().filter(r -> id.equals(r.getId())).findFirst();
     }
 
     @Override
     public boolean delete(Long id) {
-        boolean removed = reservations.removeIf(r -> r.getId().equals(id));
+        boolean removed = reservations.removeIf(r -> id.equals(r.getId()));
         if (removed) saveToFile();
         return removed;
     }
@@ -85,24 +88,18 @@ public class JsonReservationRepository implements IReservationRepository {
     @Override
     public long count() { return reservations.size(); }
 
-    
-
     @Override
     public List<Reservation> findByClientId(Long clientId) {
-        return filterReservations(r -> r.getClient() != null && clientId.equals(r.getClient().getId()));
+        return reservations.stream().filter(r -> r.getClient() != null && clientId.equals(r.getClient().getId())).toList();
     }
 
     @Override
     public List<Reservation> findByStatus(Reservation.Status status) {
-        return filterReservations(r -> status.equals(r.getStatus()));
+        return reservations.stream().filter(r -> status.equals(r.getStatus())).toList();
     }
 
     @Override
     public Optional<Reservation> findByReference(String reference) {
         return reservations.stream().filter(r -> reference.equals(r.getReference())).findFirst();
-    }
-
-    private List<Reservation> filterReservations(Predicate<Reservation> predicate) {
-        return reservations.stream().filter(predicate).toList();
     }
 }

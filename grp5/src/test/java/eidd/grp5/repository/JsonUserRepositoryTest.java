@@ -2,29 +2,21 @@ package eidd.grp5.repository;
 
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
-import eidd.grp5.model.Reservation;
-import eidd.grp5.model.Room;
-import java.time.LocalDateTime;
+import eidd.grp5.model.User;
 
-class JsonReservationRepositoryTest {
+class JsonUserRepositoryTest {
 
     @Test
-    void shouldSaveAndLoadReservation() {
-        JsonReservationRepository repo = new JsonReservationRepository();
-        Room room = new Room(1, "Test", 10, "Desc");
+    void shouldSaveAndLoadUser() {
+        JsonUserRepository repo = new JsonUserRepository();
+        User user = new User("Alice Test", "alice@test.com");
         
-        
-        Reservation res = new Reservation(room, LocalDateTime.now(), LocalDateTime.now().plusHours(1));
-        res.setReference("TEST-JSON");
-        
-        Reservation saved = repo.save(res);
+        User saved = repo.save(user);
         assertNotNull(saved.getId());
         
-        
-        var found = repo.findByReference("TEST-JSON");
+        var found = repo.findById(saved.getId());
         assertTrue(found.isPresent());
-        assertEquals("TEST-JSON", found.get().getReference());
-        
+        assertEquals("Alice Test", found.get().getName());
         
         repo.delete(saved.getId());
     }
