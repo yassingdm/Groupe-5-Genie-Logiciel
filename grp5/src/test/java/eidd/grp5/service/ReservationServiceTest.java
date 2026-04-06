@@ -18,7 +18,7 @@ import eidd.grp5.repository.ReservationRepository;
 
 class ReservationServiceTest {
 
-    private IReservationRepository repository;
+    
     private ReservationService service;
     private Room defaultRoom;
     private LocalDateTime start;
@@ -26,8 +26,10 @@ class ReservationServiceTest {
 
     @BeforeEach
     void setUp() {
-        repository = new ReservationRepository();
+        
+        IReservationRepository repository = new ReservationRepository();
         service = new ReservationService(repository);
+        
         defaultRoom = new Room(1, "A101", 10, "Salle test");
         start = LocalDateTime.of(2026, 4, 10, 10, 0);
         end = LocalDateTime.of(2026, 4, 10, 11, 0);
@@ -35,23 +37,18 @@ class ReservationServiceTest {
 
     @Test
     void shouldSetDefaultsWhenCreatingReservation() {
-        
         Reservation reservation = new Reservation(defaultRoom, start, end);
-
         Reservation saved = service.createReservation(reservation);
 
         assertNotNull(saved.getCreationDate());
         assertEquals(Reservation.Status.PENDING, saved.getStatus());
         assertNotNull(saved.getId());
-        
         assertTrue(saved.getReference().startsWith("RES-"));
     }
 
     @Test
     void shouldThrowWhenUpdatingReservationWithoutId() {
         Reservation reservation = new Reservation(defaultRoom, start, end);
-
-        
         assertThrows(IllegalArgumentException.class, () -> service.updateReservation(reservation));
     }
 
@@ -60,23 +57,18 @@ class ReservationServiceTest {
         Reservation first = new Reservation(defaultRoom, start, end);
         service.createReservation(first);
 
-        
         Reservation overlap = new Reservation(defaultRoom, start.plusMinutes(30), end.plusMinutes(30));
-
         assertThrows(IllegalStateException.class, () -> service.createReservation(overlap));
     }
 
     @Test
     void shouldThrowWhenParticipantCountIsNegative() {
         Reservation reservation = new Reservation(defaultRoom, start, end);
-        
-        
         assertThrows(IllegalArgumentException.class, () -> reservation.setParticipantCount(-1));
     }
 
     @Test
     void shouldThrowWhenEndDateIsBeforeStartDate() {
-        
         assertThrows(IllegalArgumentException.class, () -> 
             new Reservation(defaultRoom, end, start)
         );
@@ -87,7 +79,6 @@ class ReservationServiceTest {
         Reservation res = new Reservation(defaultRoom, start, end); 
         service.createReservation(res);
 
-        
         double percentage = service.getRoomOccupancyPercentage(
                 defaultRoom.getId(),
                 start,
@@ -127,7 +118,6 @@ class ReservationServiceTest {
         Reservation saved = service.createReservation(res);
         service.cancelReservation(saved.getId());
 
-        
         assertTrue(service.isRoomAvailable(defaultRoom.getId(), start, end));
     }
 }

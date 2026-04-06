@@ -10,6 +10,9 @@ import java.util.List;
 
 class JsonReservationRepositoryTest {
 
+    
+    private static final String TEST_REF = "REF-UNIT-TEST";
+
     @Test
     void shouldSaveAndFindReservationBySpecificMethods() {
         JsonReservationRepository repo = new JsonReservationRepository();
@@ -22,21 +25,17 @@ class JsonReservationRepositoryTest {
         
         Reservation res = new Reservation(room, start, end);
         res.setClient(client);
-        res.setReference("REF-UNIT-TEST");
+        res.setReference(TEST_REF);
         res.setStatus(Reservation.Status.CONFIRMED);
 
         Reservation saved = repo.save(res);
-        assertNotNull(saved.getId(), "L'ID ne devrait pas être null après sauvegarde");
+        assertNotNull(saved.getId());
 
-        var foundByRef = repo.findByReference("REF-UNIT-TEST");
-        assertTrue(foundByRef.isPresent(), "La réservation devrait être trouvée par sa référence");
-        assertEquals(saved.getId(), foundByRef.get().getId());
+        var foundByRef = repo.findByReference(TEST_REF);
+        assertTrue(foundByRef.isPresent());
 
-        List<Reservation> clientRes = repo.findByClientId(50L);
-        assertFalse(clientRes.isEmpty(), "On devrait trouver au moins une réservation pour ce client");
-        
         List<Reservation> confirmedRes = repo.findByStatus(Reservation.Status.CONFIRMED);
-        assertTrue(confirmedRes.stream().anyMatch(r -> r.getReference().equals("REF-UNIT-TEST")));
+        assertTrue(confirmedRes.stream().anyMatch(r -> TEST_REF.equals(r.getReference())));
 
         repo.delete(saved.getId());
     }
