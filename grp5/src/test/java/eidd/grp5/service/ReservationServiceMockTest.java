@@ -25,7 +25,7 @@ class ReservationServiceMockTest {
     @InjectMocks
     private ReservationService service;
 
-    /** Vérifie que createReservation appelle bien save() une seule fois. */
+    /** Checks that createReservation calls save() exactly one time. */
     @Test
     void shouldCallSaveOnceWhenCreatingReservation() {
         Reservation reservation = new Reservation();
@@ -36,7 +36,7 @@ class ReservationServiceMockTest {
         verify(repository, times(1)).save(reservation);
     }
 
-    /** Vérifie que cancelReservation retourne false quand l'ID n'existe pas. */
+    /** Checks that cancelReservation returns false when id does not exist. */
     @Test
     void shouldReturnFalseWhenCancellingNonExistentReservation() {
         when(repository.findById(99L)).thenReturn(Optional.empty());
@@ -47,7 +47,7 @@ class ReservationServiceMockTest {
         verify(repository, times(0)).save(any());
     }
 
-    /** Vérifie que deleteReservation délègue bien au repository. */
+    /** Checks that deleteReservation delegates to the repository. */
     @Test
     void shouldDelegateDeleteToRepository() {
         when(repository.delete(1L)).thenReturn(true);

@@ -1,6 +1,8 @@
 package eidd.grp5.service;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -511,5 +513,167 @@ class ReservationServiceTest {
 
         assertThrows(IllegalArgumentException.class,
                 () -> service.isRoomAvailable(null, LocalDateTime.now(), LocalDateTime.now().plusHours(1)));
+    }
+
+    @Test
+    void shouldAllowAdminToModifyAnyReservation() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+        Room roomA = new Room(1, "A101", 10, "Salle A");
+        Room roomB = new Room(2, "B101", 10, "Salle B");
+
+        User owner = new User("Owner", "owner@mail.com");
+        owner.setId(10L);
+
+        Reservation reservation = new Reservation();
+        reservation.setClient(owner);
+        reservation.setRoom(roomA);
+        reservation.setStartDate(LocalDateTime.of(2026, 5, 2, 9, 0));
+        reservation.setEndDate(LocalDateTime.of(2026, 5, 2, 10, 0));
+        Reservation saved = service.createReservation(reservation);
+
+        User admin = new User("Admin", "admin@mail.com");
+        admin.setId(1L);
+        admin.setRole(User.Role.ADMIN);
+
+        saved.setRoom(roomB);
+        saved.setStartDate(LocalDateTime.of(2026, 5, 2, 11, 0));
+        saved.setEndDate(LocalDateTime.of(2026, 5, 2, 12, 0));
+
+        Reservation updated = service.modifyReservationAsAdmin(admin, saved);
+
+        assertEquals(2L, updated.getRoom().getId());
+        assertEquals(LocalDateTime.of(2026, 5, 2, 11, 0), updated.getStartDate());
+    }
+
+    @Test
+    void shouldRejectNonAdminForAdminModification() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+
+        Reservation reservation = service.createReservation(new Reservation());
+        User customer = new User("Customer", "customer@mail.com");
+        customer.setId(2L);
+        customer.setRole(User.Role.CUSTOMER);
+
+        assertThrows(SecurityException.class, () -> service.modifyReservationAsAdmin(customer, reservation));
+    }
+
+    @Test
+    void shouldAllowOwnerToModifyOwnReservationAndRejectOthers() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+        Room room = new Room(1, "A101", 10, "Salle A");
+
+        User owner = new User("Owner", "owner@mail.com");
+        owner.setId(100L);
+        User otherUser = new User("Other", "other@mail.com");
+        otherUser.setId(200L);
+
+        Reservation reservation = new Reservation();
+        reservation.setClient(owner);
+        reservation.setRoom(room);
+        reservation.setStartDate(LocalDateTime.of(2026, 5, 3, 10, 0));
+        reservation.setEndDate(LocalDateTime.of(2026, 5, 3, 11, 0));
+        Reservation saved = service.createReservation(reservation);
+
+        saved.setEndDate(LocalDateTime.of(2026, 5, 3, 11, 30));
+        Reservation updated = service.modifyOwnReservation(owner, saved);
+        assertEquals(LocalDateTime.of(2026, 5, 3, 11, 30), updated.getEndDate());
+
+        assertThrows(SecurityException.class, () -> service.modifyOwnReservation(otherUser, saved));
+    }
+
+    @Test
+    void shouldReturnUpcomingReservationsSortedWithoutCancelled() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+        User client = new User("Alice", "alice@mail.com");
+        client.setId(1L);
+
+        Reservation oldReservation = new Reservation();
+        oldReservation.setClient(client);
+        oldReservation.setStartDate(LocalDateTime.of(2026, 4, 1, 10, 0));
+        oldReservation.setEndDate(LocalDateTime.of(2026, 4, 1, 11, 0));
+        service.createReservation(oldReservation);
+
+        Reservation next = new Reservation();
+        next.setClient(client);
+        next.setStartDate(LocalDateTime.of(2026, 6, 1, 10, 0));
+        next.setEndDate(LocalDateTime.of(2026, 6, 1, 11, 0));
+        service.createReservation(next);
+
+        Reservation laterCancelled = new Reservation();
+        laterCancelled.setClient(client);
+        laterCancelled.setStatus(Reservation.Status.CANCELLED);
+        laterCancelled.setStartDate(LocalDateTime.of(2026, 7, 1, 10, 0));
+        laterCancelled.setEndDate(LocalDateTime.of(2026, 7, 1, 11, 0));
+        service.createReservation(laterCancelled);
+
+        Reservation latest = new Reservation();
+        latest.setClient(client);
+        latest.setStartDate(LocalDateTime.of(2026, 6, 2, 10, 0));
+        latest.setEndDate(LocalDateTime.of(2026, 6, 2, 11, 0));
+        service.createReservation(latest);
+
+        List<Reservation> result = service.getUpcomingReservationsByClient(1L, LocalDateTime.of(2026, 5, 1, 0, 0));
+
+        assertEquals(2, result.size());
+        assertEquals(next.getId(), result.get(0).getId());
+        assertEquals(latest.getId(), result.get(1).getId());
+    }
+
+    @Test
+    void shouldReturnRoomDailyScheduleAndAvailableRooms() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+        Room roomA = new Room(1, "A", 10, "Salle A");
+        Room roomB = new Room(2, "B", 10, "Salle B");
+
+        Reservation reservation = new Reservation();
+        reservation.setRoom(roomA);
+        reservation.setStartDate(LocalDateTime.of(2026, 6, 10, 10, 0));
+        reservation.setEndDate(LocalDateTime.of(2026, 6, 10, 11, 0));
+        service.createReservation(reservation);
+
+        List<Reservation> schedule = service.getRoomDailySchedule(1L, LocalDate.of(2026, 6, 10));
+        assertEquals(1, schedule.size());
+
+        List<Room> nowAvailable = service.getAvailableRoomsNow(
+                List.of(roomA, roomB),
+                LocalDateTime.of(2026, 6, 10, 10, 30));
+        assertEquals(1, nowAvailable.size());
+        assertEquals(2L, nowAvailable.get(0).getId());
+
+        List<Room> periodAvailable = service.getAvailableRoomsForPeriod(
+                List.of(roomA, roomB),
+                LocalDateTime.of(2026, 6, 10, 10, 15),
+                LocalDateTime.of(2026, 6, 10, 10, 45));
+        assertEquals(1, periodAvailable.size());
+        assertEquals(2L, periodAvailable.get(0).getId());
+    }
+
+    @Test
+    void shouldNotifyObserverOnReservationLifecycleEvents() {
+        ReservationRepository repository = new ReservationRepository();
+        ReservationService service = new ReservationService(repository);
+        List<String> events = new ArrayList<>();
+
+        ReservationObserver observer = (eventType, reservation) ->
+                events.add(eventType.name() + "-" + reservation.getId());
+        service.registerObserver(observer);
+
+        Reservation reservation = new Reservation();
+        Reservation created = service.createReservation(reservation);
+        service.confirmReservation(created.getId());
+        service.cancelReservation(created.getId());
+        service.deleteReservation(created.getId());
+
+        assertEquals(4, events.size());
+        assertTrue(events.get(0).startsWith("CREATED-"));
+        assertTrue(events.get(1).startsWith("CONFIRMED-"));
+        assertTrue(events.get(2).startsWith("CANCELLED-"));
+        assertTrue(events.get(3).startsWith("DELETED-"));
+        assertTrue(service.unregisterObserver(observer));
     }
 }

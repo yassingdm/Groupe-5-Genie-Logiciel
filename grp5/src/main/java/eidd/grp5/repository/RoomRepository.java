@@ -7,36 +7,44 @@ import java.util.Optional;
 
 public class RoomRepository implements Repository<Room> {
 
-    private List<Room> rooms = new ArrayList<>();
+    private final List<Room> rooms = new ArrayList<>();
     
     @Override
     public Room save(Room entity) {
+        Room safeEntity = copyRoom(entity);
         if (entity.getId() == null) {
-            // Nouvelle salle
-            entity.setId((long) (rooms.size() + 1));
-            rooms.add(entity);
+            // New room: assign an id and store it.
+            long newId = rooms.size() + 1L;
+            entity.setId(newId);
+            safeEntity.setId(newId);
+            rooms.add(safeEntity);
         } else {
-            // Mise à jour d'une salle existante
+            // Existing room: replace by id.
             for (int i = 0; i < rooms.size(); i++) {
                 if (rooms.get(i).getId().equals(entity.getId())) {
-                    rooms.set(i, entity);
+                    rooms.set(i, safeEntity);
                     break;
                 }
             }
         }
-        return entity;
+        return copyRoom(safeEntity);
     }
 
     @Override
     public List<Room> findAll() {
-        return new ArrayList<>(rooms);
+        List<Room> result = new ArrayList<>();
+        for (Room room : rooms) {
+            result.add(copyRoom(room));
+        }
+        return result;
     }
 
     @Override
     public Optional<Room> findById(Long id) {
         return rooms.stream()
                 .filter(r -> r.getId().equals(id))
-                .findFirst();
+                .findFirst()
+                .map(this::copyRoom);
     }
 
     @Override
@@ -47,5 +55,11 @@ public class RoomRepository implements Repository<Room> {
     @Override
     public long count() {
         return rooms.size();
+    }
+
+    private Room copyRoom(Room room) {
+        Room copy = new Room(0, room.getName(), room.getCapacity(), room.getDescription());
+        copy.setId(room.getId());
+        return copy;
     }
 }

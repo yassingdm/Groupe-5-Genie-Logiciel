@@ -6,18 +6,22 @@ import java.util.List;
 import java.util.Optional;
 
 import eidd.grp5.model.Reservation;
+import eidd.grp5.model.Room;
+import eidd.grp5.model.User;
 import eidd.grp5.repository.ReservationRepository;
 
 public class ReservationService {
 
     private final ReservationRepository reservationRepository;
+    // Observer pattern: this list allows external listeners to react to reservation lifecycle events.
+    private final List<ReservationObserver> observers = new ArrayList<>();
 
     public ReservationService(ReservationRepository reservationRepository) {
         this.reservationRepository = reservationRepository;
     }
 
     /**
-     * Crée une nouvelle réservation avec les informations minimales.
+     * Creates a new reservation with the minimum required data.
      */
     public Reservation createReservation(Reservation reservation) {
         validateReservation(reservation);
@@ -36,7 +40,9 @@ public class ReservationService {
         if (isBlank(reservation.getReference())) {
             reservation.setReference(generateReference(reservation));
         }
-        return reservationRepository.save(reservation);
+        Reservation saved = reservationRepository.save(reservation);
+        notifyObservers(ReservationEventType.CREATED, saved);
+        return saved;
     }
 
     public Reservation updateReservation(Reservation reservation) {
@@ -55,7 +61,36 @@ public class ReservationService {
             reservation.setReference(generateReference(reservation));
         }
 
-        return reservationRepository.save(reservation);
+        Reservation saved = reservationRepository.save(reservation);
+        notifyObservers(ReservationEventType.UPDATED, saved);
+        return saved;
+    }
+
+    public Reservation modifyReservationAsAdmin(User actor, Reservation reservation) {
+        if (actor == null || actor.getId() == null) {
+            throw new IllegalArgumentException("actor must not be null");
+        }
+        // Only admin users can modify reservations that are not theirs.
+        if (actor.getRole() != User.Role.ADMIN) {
+            throw new SecurityException("Only admins can modify any reservation");
+        }
+        ensureReservationExists(reservation);
+        return updateReservation(reservation);
+    }
+
+    public Reservation modifyOwnReservation(User actor, Reservation reservation) {
+        if (actor == null || actor.getId() == null) {
+            throw new IllegalArgumentException("actor must not be null");
+        }
+        ensureReservationExists(reservation);
+
+        Reservation existing = reservationRepository.findById(reservation.getId()).orElseThrow();
+        // Owner check: the actor id must match the reservation client id.
+        if (existing.getClient() == null || existing.getClient().getId() == null
+                || !actor.getId().equals(existing.getClient().getId())) {
+            throw new SecurityException("Users can only modify their own reservations");
+        }
+        return updateReservation(reservation);
     }
 
     public boolean cancelReservation(Long id) {
@@ -65,7 +100,8 @@ public class ReservationService {
         }
         Reservation reservation = optional.get();
         reservation.setStatus(Reservation.Status.CANCELLED);
-        reservationRepository.save(reservation);
+        Reservation saved = reservationRepository.save(reservation);
+        notifyObservers(ReservationEventType.CANCELLED, saved);
         return true;
     }
 
@@ -76,7 +112,8 @@ public class ReservationService {
         }
         Reservation reservation = optional.get();
         reservation.setStatus(Reservation.Status.CONFIRMED);
-        reservationRepository.save(reservation);
+        Reservation saved = reservationRepository.save(reservation);
+        notifyObservers(ReservationEventType.CONFIRMED, saved);
         return true;
     }
 
@@ -98,6 +135,19 @@ public class ReservationService {
 
     public List<Reservation> getReservationsByClient(Long clientId) {
         return reservationRepository.findByClientId(clientId);
+    }
+
+    public List<Reservation> getUpcomingReservationsByClient(Long clientId, LocalDateTime fromDate) {
+        if (clientId == null || fromDate == null) {
+            throw new IllegalArgumentException("clientId and fromDate must not be null");
+        }
+
+        return reservationRepository.findByClientId(clientId).stream()
+            // Cancelled reservations are hidden from "upcoming" results.
+                .filter(reservation -> reservation.getStatus() != Reservation.Status.CANCELLED)
+                .filter(reservation -> reservation.getStartDate() != null && reservation.getStartDate().isAfter(fromDate))
+                .sorted((left, right) -> left.getStartDate().compareTo(right.getStartDate()))
+                .toList();
     }
 
     public List<Reservation> getReservationsByStatus(Reservation.Status status) {
@@ -144,8 +194,95 @@ public class ReservationService {
         return result;
     }
 
+    public List<Reservation> getRoomDailySchedule(Long roomId, java.time.LocalDate date) {
+        if (roomId == null || date == null) {
+            throw new IllegalArgumentException("roomId and date must not be null");
+        }
+
+        LocalDateTime from = date.atStartOfDay();
+        LocalDateTime to = from.plusDays(1);
+        return getReservationsByRoomAndPeriod(roomId, from, to).stream()
+                .filter(reservation -> reservation.getStatus() != Reservation.Status.CANCELLED)
+                .sorted((left, right) -> left.getStartDate().compareTo(right.getStartDate()))
+                .toList();
+    }
+
+    public List<Room> getAvailableRoomsNow(List<Room> rooms, LocalDateTime currentDateTime) {
+        if (rooms == null || currentDateTime == null) {
+            throw new IllegalArgumentException("rooms and currentDateTime must not be null");
+        }
+
+        List<Room> availableRooms = new ArrayList<>();
+        for (Room room : rooms) {
+            if (room == null || room.getId() == null) {
+                continue;
+            }
+            boolean occupied = false;
+            for (Reservation reservation : reservationRepository.findAll()) {
+                if (reservation.getStatus() == Reservation.Status.CANCELLED) {
+                    continue;
+                }
+                if (reservation.getRoom() == null || reservation.getRoom().getId() == null
+                        || !room.getId().equals(reservation.getRoom().getId())) {
+                    continue;
+                }
+                if (reservation.getStartDate() == null || reservation.getEndDate() == null) {
+                    continue;
+                }
+                if (!currentDateTime.isBefore(reservation.getStartDate())
+                        && currentDateTime.isBefore(reservation.getEndDate())) {
+                    occupied = true;
+                    break;
+                }
+            }
+            if (!occupied) {
+                availableRooms.add(room);
+            }
+        }
+        return availableRooms;
+    }
+
+    public List<Room> getAvailableRoomsForPeriod(List<Room> rooms, LocalDateTime startDate, LocalDateTime endDate) {
+        if (rooms == null || startDate == null || endDate == null) {
+            throw new IllegalArgumentException("rooms, startDate and endDate must not be null");
+        }
+        if (!endDate.isAfter(startDate)) {
+            throw new IllegalArgumentException("endDate must be after startDate");
+        }
+
+        List<Room> availableRooms = new ArrayList<>();
+        for (Room room : rooms) {
+            if (room == null || room.getId() == null) {
+                continue;
+            }
+            if (isRoomAvailable(room.getId(), startDate, endDate)) {
+                availableRooms.add(room);
+            }
+        }
+        return availableRooms;
+    }
+
     public boolean deleteReservation(Long id) {
-        return reservationRepository.delete(id);
+        Optional<Reservation> existing = reservationRepository.findById(id);
+        boolean deleted = reservationRepository.delete(id);
+        if (deleted && existing.isPresent()) {
+            notifyObservers(ReservationEventType.DELETED, existing.get());
+        }
+        return deleted;
+    }
+
+    public void registerObserver(ReservationObserver observer) {
+        if (observer == null) {
+            throw new IllegalArgumentException("observer must not be null");
+        }
+        observers.add(observer);
+    }
+
+    public boolean unregisterObserver(ReservationObserver observer) {
+        if (observer == null) {
+            return false;
+        }
+        return observers.remove(observer);
     }
 
     public List<Reservation> getConflictingReservations(Long roomId, LocalDateTime startDate, LocalDateTime endDate) {
@@ -277,5 +414,20 @@ public class ReservationService {
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private void notifyObservers(ReservationEventType eventType, Reservation reservation) {
+        for (ReservationObserver observer : observers) {
+            observer.onReservationEvent(eventType, reservation);
+        }
+    }
+
+    private void ensureReservationExists(Reservation reservation) {
+        if (reservation == null || reservation.getId() == null) {
+            throw new IllegalArgumentException("Reservation id must not be null for update");
+        }
+        if (reservationRepository.findById(reservation.getId()).isEmpty()) {
+            throw new IllegalArgumentException("Reservation not found");
+        }
     }
 }

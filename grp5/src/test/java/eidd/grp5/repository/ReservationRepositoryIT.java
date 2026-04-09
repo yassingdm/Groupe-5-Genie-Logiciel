@@ -15,7 +15,7 @@ class ReservationRepositoryIT {
 
     private final ReservationRepository repository = new ReservationRepository();
 
-    /** Round-trip basique : save → findById retrouve la même entité. */
+    /** Basic round trip: save then findById returns the same entity. */
     @Test
     void shouldSaveAndFindReservationById() {
         Reservation reservation = new Reservation();
@@ -28,7 +28,7 @@ class ReservationRepositoryIT {
         assertEquals("RES-001", found.get().getReference());
     }
 
-    /** Fichier inexistant : findById sur un ID absent retourne vide. */
+    /** Missing id case: findById returns empty for unknown id. */
     @Test
     void shouldReturnEmptyWhenIdDoesNotExist() {
         Optional<Reservation> found = repository.findById(999L);
@@ -36,7 +36,7 @@ class ReservationRepositoryIT {
         assertFalse(found.isPresent());
     }
 
-    /** Cas limite : liste vide et caractères spéciaux dans la référence. */
+    /** Edge case: empty list and special characters in reference. */
     @Test
     void shouldHandleEmptyListAndSpecialCharactersInReference() {
         List<Reservation> empty = repository.findAll();

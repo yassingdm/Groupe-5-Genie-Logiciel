@@ -22,9 +22,9 @@ class ConsoleUITest {
     @Test
     void shouldCreateAndListReservationFromConsoleFlow() {
         String input = String.join("\n",
-                "2", "Alice", "alice@mail.com",
+            "2", "Alice", "alice@mail.com", "",
                 "4", "Room A", "20", "Salle principale",
-                "6", "1", "1", "2026-03-26T14:00", "2026-03-26T15:00",
+                "6", "1", "1", "2026-03-26T14:00", "2026-03-26T15:00", "", "",
                 "7",
             "10") + "\n";
 
@@ -64,9 +64,9 @@ class ConsoleUITest {
     @Test
     void shouldRetryOnInvalidIdsAndDateFormats() {
         String input = String.join("\n",
-                "2", "Bob", "bob@mail.com",
+            "2", "Bob", "bob@mail.com", "",
                 "4", "Room B", "10", "Desc",
-                "6", "x", "1", "y", "1", "bad-date", "2026-03-26 14:00", "oops", "2026-03-26 15:00",
+                "6", "x", "1", "y", "1", "bad-date", "2026-03-26 14:00", "oops", "2026-03-26 15:00", "", "",
             "10") + "\n";
 
         String output = runConsoleSession(input);
@@ -80,7 +80,7 @@ class ConsoleUITest {
     @Test
     void shouldRejectReservationWhenEndIsBeforeStart() {
         String input = String.join("\n",
-                "2", "Carol", "carol@mail.com",
+            "2", "Carol", "carol@mail.com", "",
                 "4", "Room C", "8", "Desc",
                 "6", "1", "1", "2026-03-26T15:00", "2026-03-26T14:00",
             "10") + "\n";
@@ -129,7 +129,7 @@ class ConsoleUITest {
     @Test
     void shouldListUsersAndRoomsFromMenuWhenDataExists() {
         String input = String.join("\n",
-                "2", "Frank", "frank@mail.com",
+            "2", "Frank", "frank@mail.com", "",
                 "4", "Room G", "30", "Grande salle",
                 "3",
                 "5",
@@ -146,7 +146,7 @@ class ConsoleUITest {
     @Test
     void shouldRejectReservationWhenUserOrRoomDoesNotExist() {
         String input = String.join("\n",
-                "2", "Dan", "dan@mail.com",
+            "2", "Dan", "dan@mail.com", "",
                 "4", "Room E", "6", "Desc",
                 "6", "99", "99", "2026-03-26T10:00", "2026-03-26T11:00",
             "10") + "\n";
@@ -159,10 +159,10 @@ class ConsoleUITest {
     @Test
     void shouldShowReservationConflictErrorFromService() {
         String input = String.join("\n",
-                "2", "Eve", "eve@mail.com",
+            "2", "Eve", "eve@mail.com", "",
                 "4", "Room F", "12", "Desc",
-                "6", "1", "1", "2026-03-26T10:00", "2026-03-26T11:00",
-                "6", "1", "1", "2026-03-26T10:30", "2026-03-26T11:30",
+                "6", "1", "1", "2026-03-26T10:00", "2026-03-26T11:00", "", "",
+                "6", "1", "1", "2026-03-26T10:30", "2026-03-26T11:30", "", "",
             "10") + "\n";
 
         String output = runConsoleSession(input);
@@ -199,16 +199,16 @@ class ConsoleUITest {
     @Test
     void shouldHandleReservationManagementMenuFlows() {
         String input = String.join("\n",
-                "2", "Alice", "alice@mail.com",
+            "2", "Alice", "alice@mail.com", "",
                 "4", "Room A", "10", "Desc",
-                "6", "1", "1", "2026-03-26T10:00", "2026-03-26T11:00",
+                "6", "1", "1", "2026-03-26T10:00", "2026-03-26T11:00", "", "",
                 "8",
                 "2", "invalid",
                 "3", "REF-404",
                 "4", "1",
                 "5", "1",
                 "1", "1",
-                "6",
+                "10",
             "10") + "\n";
 
         String output = runConsoleSession(input);
@@ -223,9 +223,9 @@ class ConsoleUITest {
     @Test
     void shouldHandleAvailabilityMenuBranches() {
         String input = String.join("\n",
-                "2", "Bob", "bob@mail.com",
+            "2", "Bob", "bob@mail.com", "",
                 "4", "Room B", "8", "Desc",
-                "6", "1", "1", "2026-03-26T10:00", "2026-03-26T11:00",
+                "6", "1", "1", "2026-03-26T10:00", "2026-03-26T11:00", "", "",
                 "9",
                 "1", "1", "2026-03-26 12:00", "2026-03-26 11:00",
                 "1", "1", "2026-03-26 10:30", "2026-03-26 10:45",
@@ -233,7 +233,7 @@ class ConsoleUITest {
                 "2", "1", "2026-03-26 12:00", "2026-03-26 12:30",
                 "2", "1", "2026-03-26 10:30", "2026-03-26 10:45",
                 "3", "1", "2026-03-26 09:00", "2026-03-26 12:00",
-                "4",
+                "7",
             "10") + "\n";
 
         String output = runConsoleSession(input);
@@ -244,6 +244,89 @@ class ConsoleUITest {
         assertTrue(output.contains("Aucun conflit pour cette periode."));
         assertTrue(output.contains("--- Reservations en conflit ==="));
         assertTrue(output.contains("--- Taux d'occupation ==="));
+    }
+
+    @Test
+    void shouldSupportAdminAndOwnerReservationModificationFlows() {
+        String input = String.join("\n",
+                "2", "Admin", "admin@mail.com", "ADMIN",
+                "2", "Alice", "alice@mail.com", "",
+                "2", "Bob", "bob@mail.com", "",
+                "4", "Room A", "10", "Desc A",
+                "4", "Room B", "12", "Desc B",
+                "6", "2", "1", "2026-03-26T10:00", "2026-03-26T11:00", "", "",
+                "8",
+                "6", "3", "1", "2", "2026-03-26 12:00", "2026-03-26 13:00", "", "",
+                "6", "2", "1", "2", "2026-03-26 12:00", "2026-03-26 13:00", "", "",
+                "7", "1", "1", "2", "2026-03-26 14:00", "2026-03-26 15:00", "", "",
+                "10",
+            "10") + "\n";
+
+        String output = runConsoleSession(input);
+
+        assertTrue(output.contains("Modification impossible: Users can only modify their own reservations"));
+        assertTrue(output.contains("Reservation modifiee (client)."));
+        assertTrue(output.contains("Reservation modifiee (admin)."));
+    }
+
+    @Test
+    void shouldDisplayUpcomingReservationsAndRoomOverviewByRoom() {
+        String input = String.join("\n",
+                "2", "Alice", "alice@mail.com", "",
+                "4", "Room A", "10", "Desc A",
+                "4", "Room B", "8", "Desc B",
+                "6", "1", "1", "2026-06-26T10:00", "2026-06-26T11:00", "", "",
+                "6", "1", "2", "2026-07-01T10:00", "2026-07-01T11:00", "", "",
+                "8",
+                "8", "1", "2026-06-01 00:00",
+                "9",
+                "10",
+            "10") + "\n";
+
+        String output = runConsoleSession(input);
+
+        assertTrue(output.contains("--- Reservations a venir ==="));
+        assertTrue(output.contains("--- Vue admin: reservations par salle ==="));
+        assertTrue(output.contains("Salle Room A"));
+        assertTrue(output.contains("Salle Room B"));
+    }
+
+    @Test
+    void shouldDisplayDailyScheduleAndAvailableRoomsMenus() {
+        String input = String.join("\n",
+                "2", "Alice", "alice@mail.com", "",
+                "4", "Room A", "10", "Desc A",
+                "4", "Room B", "8", "Desc B",
+                "6", "1", "1", "2026-06-10T10:00", "2026-06-10T11:00", "", "",
+                "9",
+                "4", "1", "2026-06-10",
+                "5",
+                "6", "2026-06-10 10:15", "2026-06-10 10:45",
+                "7",
+            "10") + "\n";
+
+        String output = runConsoleSession(input);
+
+        assertTrue(output.contains("--- Planning journalier ==="));
+        assertTrue(output.contains("--- Salles disponibles maintenant ==="));
+        assertTrue(output.contains("--- Salles disponibles pour le creneau ==="));
+    }
+
+    @Test
+    void shouldCaptureParticipantsAndPurposeInReservationDetails() {
+        String input = String.join("\n",
+                "2", "Yassin", "yassin@mail.com", "",
+                "4", "Salle 203", "30", "Bloc C",
+                "6", "1", "1", "2026-04-09T10:00", "2026-04-09T12:00", "7", "Comite de pilotage",
+                "8",
+                "8", "1", "2026-04-09 09:00",
+                "10",
+            "10") + "\n";
+
+        String output = runConsoleSession(input);
+
+        assertTrue(output.contains("Participants: 7"));
+        assertTrue(output.contains("Motif: Comite de pilotage"));
     }
 
     private String runConsoleSession(String input) {

@@ -15,6 +15,7 @@ class UserTest {
         assertEquals("Alice", user.getName());
         assertEquals("alice@mail.com", user.getEmail());
         assertNull(user.getId());
+        assertEquals(User.Role.CUSTOMER, user.getRole());
     }
 
     @Test
@@ -24,10 +25,12 @@ class UserTest {
         user.setId(10L);
         user.setName("Bobby");
         user.setEmail("bobby@mail.com");
+        user.setRole(User.Role.ADMIN);
 
         assertEquals(10L, user.getId());
         assertEquals("Bobby", user.getName());
         assertEquals("bobby@mail.com", user.getEmail());
+        assertEquals(User.Role.ADMIN, user.getRole());
     }
 
     @Test

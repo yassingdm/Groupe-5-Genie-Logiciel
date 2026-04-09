@@ -7,36 +7,44 @@ import java.util.Optional;
 
 public class UserRepository implements Repository<User> {
 
-    private List<User> users = new ArrayList<>();
+    private final List<User> users = new ArrayList<>();
     
     @Override
     public User save(User entity) {
+        User safeEntity = copyUser(entity);
         if (entity.getId() == null) {
-            // Nouvel utilisateur
-            entity.setId((long) (users.size() + 1));
-            users.add(entity);
+            // New user: assign an id and store it.
+            long newId = users.size() + 1L;
+            entity.setId(newId);
+            safeEntity.setId(newId);
+            users.add(safeEntity);
         } else {
-            // Mise à jour d'un utilisateur existant
+            // Existing user: replace by id.
             for (int i = 0; i < users.size(); i++) {
                 if (users.get(i).getId().equals(entity.getId())) {
-                    users.set(i, entity);
+                    users.set(i, safeEntity);
                     break;
                 }
             }
         }
-        return entity;
+        return copyUser(safeEntity);
     }
 
     @Override
     public List<User> findAll() {
-        return new ArrayList<>(users);
+        List<User> result = new ArrayList<>();
+        for (User user : users) {
+            result.add(copyUser(user));
+        }
+        return result;
     }
 
     @Override
     public Optional<User> findById(Long id) {
         return users.stream()
                 .filter(u -> u.getId().equals(id))
-                .findFirst();
+                .findFirst()
+                .map(this::copyUser);
     }
 
     @Override
@@ -47,5 +55,12 @@ public class UserRepository implements Repository<User> {
     @Override
     public long count() {
         return users.size();
+    }
+
+    private User copyUser(User user) {
+        User copy = new User(user.getName(), user.getEmail());
+        copy.setId(user.getId());
+        copy.setRole(user.getRole());
+        return copy;
     }
 }

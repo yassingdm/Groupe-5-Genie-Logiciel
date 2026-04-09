@@ -1,9 +1,13 @@
 package eidd.grp5.presentation;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Scanner;
 
@@ -21,6 +25,40 @@ public class ConsoleUI {
 
 	private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
+	// Command pattern: each menu option is wrapped as an executable command object
+	// so menu flow stays readable when options grow.
+	@FunctionalInterface
+	private interface MenuCommand {
+		void execute();
+	}
+
+	// Abstract Factory pattern: this centralizes dependency creation for the default console setup
+	// so wiring can change later without changing the UI logic.
+	private interface ConsoleDependencyFactory {
+		UserService createUserService();
+
+		RoomService createRoomService();
+
+		ReservationService createReservationService();
+	}
+
+	private static final class DefaultConsoleDependencyFactory implements ConsoleDependencyFactory {
+		@Override
+		public UserService createUserService() {
+			return new UserService(new UserRepository());
+		}
+
+		@Override
+		public RoomService createRoomService() {
+			return new RoomService(new RoomRepository());
+		}
+
+		@Override
+		public ReservationService createReservationService() {
+			return new ReservationService(new ReservationRepository());
+		}
+	}
+
 	private final UserService userService;
 	private final RoomService roomService;
 	private final ReservationService reservationService;
@@ -32,20 +70,22 @@ public class ConsoleUI {
 	}
 
 	public static ConsoleUI createDefault() {
-		UserRepository userRepository = new UserRepository();
-		RoomRepository roomRepository = new RoomRepository();
-		ReservationRepository reservationRepository = new ReservationRepository();
-
+		ConsoleDependencyFactory factory = new DefaultConsoleDependencyFactory();
 		return new ConsoleUI(
-				new UserService(userRepository),
-				new RoomService(roomRepository),
-				new ReservationService(reservationRepository));
+				factory.createUserService(),
+				factory.createRoomService(),
+				factory.createReservationService());
 	}
 
 	public void start() {
 		try (Scanner scanner = new Scanner(System.in)) {
 			boolean running = true;
 			while (running) {
+				if (!scanner.hasNextLine()) {
+					System.out.println();
+					System.out.println("Fermeture de la vue console...");
+					break;
+				}
 				printMenu();
 				System.out.print("Choix: ");
 				String input = scanner.nextLine().trim();
@@ -67,28 +107,39 @@ public class ConsoleUI {
 					default -> System.out.println("Choix invalide. Reessaie.");
 				}
 			}
+		} catch (NoSuchElementException | IllegalStateException e) {
+			System.out.println();
+			System.out.println("Fermeture de la vue console...");
 		}
 	}
 
 	private void printMenu() {
-		System.out.println();
-		System.out.println("=== Vue Console ===");
-		System.out.println("1. Afficher les statistiques");
-		System.out.println("2. Ajouter un utilisateur");
-		System.out.println("3. Lister les utilisateurs");
-		System.out.println("4. Ajouter une salle");
-		System.out.println("5. Lister les salles");
-		System.out.println("6. Creer une reservation simple");
-		System.out.println("7. Lister les reservations");
-		System.out.println("8. Recherche et gestion des reservations");
-		System.out.println("9. Verifier disponibilite et conflits");
-		System.out.println("10. Quitter");
+		printBlockTitle("Vue Console");
+		printMenuSection("General", List.of(
+				"1. Afficher les statistiques",
+				"10. Quitter"));
+		printMenuSection("Utilisateurs et Salles", List.of(
+				"2. Ajouter un utilisateur",
+				"3. Lister les utilisateurs",
+				"4. Ajouter une salle",
+				"5. Lister les salles"));
+		printMenuSection("Reservations", List.of(
+				"6. Creer une reservation simple",
+				"7. Lister les reservations",
+				"8. Recherche et gestion des reservations",
+				"9. Verifier disponibilite et conflits"));
 	}
 
 	private void printStats() {
+		System.out.println();
+		printLineSeparator();
+		System.out.println("Statistiques globales");
+		printLineSeparator();
 		System.out.println("Utilisateurs : " + userService.countUsers());
 		System.out.println("Salles       : " + roomService.countRooms());
 		System.out.println("Reservations : " + reservationService.getAllReservations().size());
+		printLineSeparator();
+		System.out.println();
 	}
 
 	private void createUser(Scanner scanner) {
@@ -103,7 +154,19 @@ public class ConsoleUI {
 			return;
 		}
 
-		User created = userService.createUser(new User(name, email));
+		System.out.print("Role (CUSTOMER/ADMIN, vide = CUSTOMER): ");
+		String roleInput = scanner.nextLine().trim().toUpperCase();
+
+		User user = new User(name, email);
+		if (!roleInput.isEmpty()) {
+			try {
+				user.setRole(User.Role.valueOf(roleInput));
+			} catch (IllegalArgumentException e) {
+				System.out.println("Role invalide, CUSTOMER applique par defaut.");
+			}
+		}
+
+		User created = userService.createUser(user);
 		System.out.println("Utilisateur cree avec l'ID: " + created.getId());
 	}
 
@@ -111,13 +174,21 @@ public class ConsoleUI {
 		List<User> users = userService.getAllUsers();
 		if (users.isEmpty()) {
 			System.out.println("Aucun utilisateur enregistre.");
+			System.out.println();
 			return;
 		}
 
+		System.out.println();
 		System.out.println("--- Utilisateurs ---");
+		printLineSeparator();
+		System.out.println("ID | NOM | EMAIL | ROLE");
+		printLineSeparator();
 		for (User user : users) {
-			System.out.println(user.getId() + " | " + user.getName() + " | " + user.getEmail());
+			String role = user.getRole() == null ? "CUSTOMER" : user.getRole().name();
+			System.out.println(user.getId() + " | " + user.getName() + " | " + user.getEmail() + " | role=" + role);
 		}
+		printLineSeparator();
+		System.out.println();
 	}
 
 	private void createRoom(Scanner scanner) {
@@ -158,13 +229,20 @@ public class ConsoleUI {
 		List<Room> rooms = roomService.getAllRooms();
 		if (rooms.isEmpty()) {
 			System.out.println("Aucune salle enregistree.");
+			System.out.println();
 			return;
 		}
 
+		System.out.println();
 		System.out.println("--- Salles ---");
+		printLineSeparator();
+		System.out.println("ID | NOM | CAPACITE | DESCRIPTION");
+		printLineSeparator();
 		for (Room room : rooms) {
 			System.out.println(room.getId() + " | " + room.getName() + " | cap=" + room.getCapacity() + " | " + room.getDescription());
 		}
+		printLineSeparator();
+		System.out.println();
 	}
 
 	private void createReservation(Scanner scanner) {
@@ -198,12 +276,24 @@ public class ConsoleUI {
 			return;
 		}
 
+		int participantCount = readPositiveIntOrDefault(scanner,
+				"Nombre de participants (vide = 1): ",
+				1);
+		if (participantCount <= 0) {
+			System.out.println("Nombre de participants invalide.");
+			return;
+		}
+
+		System.out.print("Motif (optionnel): ");
+		String purposeInput = scanner.nextLine().trim();
+
 		Reservation reservation = new Reservation();
 		reservation.setClient(userOpt.get());
 		reservation.setRoom(roomOpt.get());
 		reservation.setStartDate(startDate);
 		reservation.setEndDate(endDate);
-		reservation.setParticipantCount(1);
+		reservation.setParticipantCount(participantCount);
+		reservation.setPurpose(purposeInput.isEmpty() ? null : purposeInput);
 
 		try {
 			Reservation created = reservationService.createReservation(reservation);
@@ -217,10 +307,15 @@ public class ConsoleUI {
 		List<Reservation> reservations = reservationService.getAllReservations();
 		if (reservations.isEmpty()) {
 			System.out.println("Aucune reservation enregistree.");
+			System.out.println();
 			return;
 		}
 
+		System.out.println();
 		System.out.println("--- Reservations ---");
+		printLineSeparator();
+		System.out.println("ID | CLIENT | SALLE | DEBUT | FIN | STATUT");
+		printLineSeparator();
 		for (Reservation reservation : reservations) {
 			String clientName = reservation.getClient() == null ? "-" : reservation.getClient().getName();
 			String roomName = reservation.getRoom() == null ? "-" : reservation.getRoom().getName();
@@ -232,6 +327,8 @@ public class ConsoleUI {
 					reservation.getId() + " | client=" + clientName + " | salle=" + roomName + " | debut=" + start
 							+ " | fin=" + end + " | statut=" + status);
 		}
+		printLineSeparator();
+		System.out.println();
 	}
 
 	private long readLong(Scanner scanner, String prompt) {
@@ -243,6 +340,22 @@ public class ConsoleUI {
 			} catch (NumberFormatException e) {
 				System.out.println("Valeur invalide, entre un nombre entier.");
 			}
+		}
+	}
+
+	private int readPositiveIntOrDefault(Scanner scanner, String prompt, int defaultValue) {
+		System.out.print(prompt);
+		String input = scanner.nextLine().trim();
+		if (input.isEmpty()) {
+			// Empty input keeps the default value for faster data entry.
+			return defaultValue;
+		}
+		try {
+			int parsed = Integer.parseInt(input);
+			// A negative return value is used as a validation flag by callers.
+			return parsed > 0 ? parsed : -1;
+		} catch (NumberFormatException e) {
+			return -1;
 		}
 	}
 
@@ -261,6 +374,18 @@ public class ConsoleUI {
 		}
 	}
 
+	private LocalDate readDate(Scanner scanner, String prompt) {
+		while (true) {
+			System.out.print(prompt);
+			String input = scanner.nextLine().trim();
+			try {
+				return LocalDate.parse(input);
+			} catch (DateTimeParseException e) {
+				System.out.println("Format invalide. Exemple: 2026-04-01");
+			}
+		}
+	}
+
 	private String formatDateTime(LocalDateTime dateTime) {
 		if (dateTime == null) {
 			return "-";
@@ -269,50 +394,244 @@ public class ConsoleUI {
 	}
 
 	private void showReservationMenu(Scanner scanner) {
+		Map<String, MenuCommand> actions = buildReservationMenuActions(scanner);
 		boolean inMenu = true;
 		while (inMenu) {
-			System.out.println();
-			System.out.println("=== Gestion Reservations ===");
-			System.out.println("1. Chercher par client");
-			System.out.println("2. Chercher par statut");
-			System.out.println("3. Chercher par reference");
-			System.out.println("4. Confirmer une reservation");
-			System.out.println("5. Annuler une reservation");
-			System.out.println("6. Retour au menu principal");
+			printBlockTitle("Gestion Reservations");
+			printMenuSection("Recherche", List.of(
+					"1. Chercher par client",
+					"2. Chercher par statut",
+					"3. Chercher par reference"));
+			printMenuSection("Actions", List.of(
+					"4. Confirmer une reservation",
+					"5. Annuler une reservation",
+					"6. Modifier ma reservation (client)",
+					"7. Modifier une reservation (admin)"));
+			printMenuSection("Vues", List.of(
+					"8. Voir mes reservations a venir",
+					"9. Vue admin: reservations par salle",
+					"10. Retour au menu principal"));
 			System.out.print("Choix: ");
 			String choice = scanner.nextLine().trim();
 
-			switch (choice) {
-				case "1" -> searchReservationsByClient(scanner);
-				case "2" -> searchReservationsByStatus(scanner);
-				case "3" -> searchReservationByReference(scanner);
-				case "4" -> confirmReservationFromMenu(scanner);
-				case "5" -> cancelReservationFromMenu(scanner);
-				case "6" -> inMenu = false;
-				default -> System.out.println("Choix invalide.");
+			if ("10".equals(choice)) {
+				inMenu = false;
+				continue;
 			}
+			runMenuAction(actions, choice);
 		}
 	}
 
 	private void showAvailabilityMenu(Scanner scanner) {
+		Map<String, MenuCommand> actions = buildAvailabilityMenuActions(scanner);
 		boolean inMenu = true;
 		while (inMenu) {
-			System.out.println();
-			System.out.println("=== Disponibilite et Conflits ===");
-			System.out.println("1. Verifier disponibilite d'une salle");
-			System.out.println("2. Afficher les conflits");
-			System.out.println("3. Voir taux d'occupation d'une salle");
-			System.out.println("4. Retour au menu principal");
+			printBlockTitle("Disponibilite et Conflits");
+			printMenuSection("Salle specifique", List.of(
+					"1. Verifier disponibilite d'une salle",
+					"2. Afficher les conflits",
+					"3. Voir taux d'occupation d'une salle",
+					"4. Voir planning journalier d'une salle"));
+			printMenuSection("Vue globale", List.of(
+					"5. Voir toutes les salles disponibles maintenant",
+					"6. Voir salles disponibles pour un creneau",
+					"7. Retour au menu principal"));
 			System.out.print("Choix: ");
 			String choice = scanner.nextLine().trim();
 
-			switch (choice) {
-				case "1" -> checkRoomAvailability(scanner);
-				case "2" -> showConflictingReservations(scanner);
-				case "3" -> showRoomOccupancy(scanner);
-				case "4" -> inMenu = false;
-				default -> System.out.println("Choix invalide.");
+			if ("7".equals(choice)) {
+				inMenu = false;
+				continue;
 			}
+			runMenuAction(actions, choice);
+		}
+	}
+
+	private Map<String, MenuCommand> buildReservationMenuActions(Scanner scanner) {
+		Map<String, MenuCommand> actions = new LinkedHashMap<>();
+		actions.put("1", () -> searchReservationsByClient(scanner));
+		actions.put("2", () -> searchReservationsByStatus(scanner));
+		actions.put("3", () -> searchReservationByReference(scanner));
+		actions.put("4", () -> confirmReservationFromMenu(scanner));
+		actions.put("5", () -> cancelReservationFromMenu(scanner));
+		actions.put("6", () -> modifyOwnReservationFromMenu(scanner));
+		actions.put("7", () -> modifyReservationAsAdminFromMenu(scanner));
+		actions.put("8", () -> showUpcomingReservationsFromMenu(scanner));
+		actions.put("9", this::showAllReservationsByRoomFromMenu);
+		return actions;
+	}
+
+	private Map<String, MenuCommand> buildAvailabilityMenuActions(Scanner scanner) {
+		Map<String, MenuCommand> actions = new LinkedHashMap<>();
+		actions.put("1", () -> checkRoomAvailability(scanner));
+		actions.put("2", () -> showConflictingReservations(scanner));
+		actions.put("3", () -> showRoomOccupancy(scanner));
+		actions.put("4", () -> showRoomDailySchedule(scanner));
+		actions.put("5", this::showAvailableRoomsNow);
+		actions.put("6", () -> showAvailableRoomsForPeriod(scanner));
+		return actions;
+	}
+
+	private void runMenuAction(Map<String, MenuCommand> actions, String choice) {
+		MenuCommand action = actions.get(choice);
+		if (action == null) {
+			System.out.println("Choix invalide.");
+			return;
+		}
+		action.execute();
+	}
+
+	private void modifyOwnReservationFromMenu(Scanner scanner) {
+		listUsers();
+		long actorUserId = readLong(scanner, "ID client (proprietaire): ");
+		Optional<User> actorOpt = userService.getUserById(actorUserId);
+		if (actorOpt.isEmpty()) {
+			System.out.println("Client introuvable.");
+			return;
+		}
+
+		listReservations();
+		long reservationId = readLong(scanner, "ID reservation a modifier: ");
+		Optional<Reservation> reservationOpt = reservationService.getReservationById(reservationId);
+		if (reservationOpt.isEmpty()) {
+			System.out.println("Reservation non trouvee.");
+			return;
+		}
+
+		Reservation updatedReservation = copyReservation(reservationOpt.get());
+		try {
+			updateReservationTimeAndRoom(scanner, updatedReservation);
+			reservationService.modifyOwnReservation(actorOpt.get(), updatedReservation);
+			System.out.println("Reservation modifiee (client).");
+		} catch (IllegalArgumentException | IllegalStateException | SecurityException e) {
+			System.out.println("Modification impossible: " + e.getMessage());
+		}
+	}
+
+	private void modifyReservationAsAdminFromMenu(Scanner scanner) {
+		listUsers();
+		long actorUserId = readLong(scanner, "ID admin: ");
+		Optional<User> actorOpt = userService.getUserById(actorUserId);
+		if (actorOpt.isEmpty()) {
+			System.out.println("Admin introuvable.");
+			return;
+		}
+
+		listReservations();
+		long reservationId = readLong(scanner, "ID reservation a modifier: ");
+		Optional<Reservation> reservationOpt = reservationService.getReservationById(reservationId);
+		if (reservationOpt.isEmpty()) {
+			System.out.println("Reservation non trouvee.");
+			return;
+		}
+
+		Reservation updatedReservation = copyReservation(reservationOpt.get());
+		try {
+			updateReservationTimeAndRoom(scanner, updatedReservation);
+			reservationService.modifyReservationAsAdmin(actorOpt.get(), updatedReservation);
+			System.out.println("Reservation modifiee (admin).");
+		} catch (IllegalArgumentException | IllegalStateException | SecurityException e) {
+			System.out.println("Modification impossible: " + e.getMessage());
+		}
+	}
+
+	private void showUpcomingReservationsFromMenu(Scanner scanner) {
+		listUsers();
+		long clientId = readLong(scanner, "ID client: ");
+		LocalDateTime fromDate = readDateTime(scanner, "A partir de (format yyyy-MM-dd HH:mm): ");
+
+		List<Reservation> upcoming = reservationService.getUpcomingReservationsByClient(clientId, fromDate);
+		if (upcoming.isEmpty()) {
+			System.out.println("Aucune reservation a venir.");
+			return;
+		}
+
+		System.out.println("--- Reservations a venir ===");
+		for (Reservation reservation : upcoming) {
+			printReservationDetails(reservation);
+		}
+	}
+
+	private void showAllReservationsByRoomFromMenu() {
+		listRooms();
+		if (roomService.countRooms() == 0) {
+			return;
+		}
+
+		System.out.println("--- Vue admin: reservations par salle ===");
+		for (Room room : roomService.getAllRooms()) {
+			if (room.getId() == null) {
+				continue;
+			}
+			System.out.println("Salle " + room.getName() + " (ID=" + room.getId() + ")");
+			List<Reservation> reservations = reservationService.getReservationsByRoom(room.getId());
+			if (reservations.isEmpty()) {
+				System.out.println("  Aucune reservation.");
+				continue;
+			}
+			for (Reservation reservation : reservations) {
+				System.out.println("  - [" + reservation.getId() + "] "
+						+ formatDateTime(reservation.getStartDate())
+						+ " -> " + formatDateTime(reservation.getEndDate()));
+			}
+		}
+	}
+
+	private void showRoomDailySchedule(Scanner scanner) {
+		listRooms();
+		long roomId = readLong(scanner, "ID salle: ");
+		LocalDate date = readDate(scanner, "Date (format yyyy-MM-dd): ");
+
+		List<Reservation> schedule = reservationService.getRoomDailySchedule(roomId, date);
+		if (schedule.isEmpty()) {
+			System.out.println("Aucune reservation ce jour pour cette salle.");
+			return;
+		}
+
+		System.out.println("--- Planning journalier ===");
+		for (Reservation reservation : schedule) {
+			printReservationDetails(reservation);
+		}
+	}
+
+	private void showAvailableRoomsNow() {
+		List<Room> availableRooms = reservationService.getAvailableRoomsNow(
+				roomService.getAllRooms(),
+				LocalDateTime.now());
+
+		if (availableRooms.isEmpty()) {
+			System.out.println("Aucune salle disponible pour le moment.");
+			return;
+		}
+
+		System.out.println("--- Salles disponibles maintenant ===");
+		for (Room room : availableRooms) {
+			System.out.println(room.getId() + " | " + room.getName() + " | cap=" + room.getCapacity());
+		}
+	}
+
+	private void showAvailableRoomsForPeriod(Scanner scanner) {
+		LocalDateTime startDate = readDateTime(scanner, "Debut (format yyyy-MM-dd HH:mm): ");
+		LocalDateTime endDate = readDateTime(scanner, "Fin (format yyyy-MM-dd HH:mm): ");
+
+		if (!endDate.isAfter(startDate)) {
+			System.out.println("La fin doit etre apres le debut.");
+			return;
+		}
+
+		List<Room> availableRooms = reservationService.getAvailableRoomsForPeriod(
+				roomService.getAllRooms(),
+				startDate,
+				endDate);
+
+		if (availableRooms.isEmpty()) {
+			System.out.println("Aucune salle disponible pour ce creneau.");
+			return;
+		}
+
+		System.out.println("--- Salles disponibles pour le creneau ===");
+		for (Room room : availableRooms) {
+			System.out.println(room.getId() + " | " + room.getName() + " | cap=" + room.getCapacity());
 		}
 	}
 
@@ -457,5 +776,79 @@ public class ConsoleUI {
 		System.out.println("  Participants: " + participants);
 		System.out.println("  Motif: " + purpose);
 		System.out.println("  Statut: " + status);
+		printLineSeparator();
+	}
+
+	private void printBlockTitle(String title) {
+		System.out.println();
+		printLineSeparator();
+		System.out.println("=== " + title + " ===");
+		printLineSeparator();
+		System.out.println();
+	}
+
+	private void printMenuSection(String sectionTitle, List<String> options) {
+		System.out.println("[" + sectionTitle + "]");
+		for (String option : options) {
+			System.out.println("  " + option);
+		}
+		printLineSeparator();
+		System.out.println();
+	}
+
+	private void printLineSeparator() {
+		System.out.println("-----------------------------------------------");
+	}
+
+	private Reservation copyReservation(Reservation reservation) {
+		// A copy is used to avoid mutating stored data before validation passes.
+		Reservation copy = new Reservation();
+		copy.setId(reservation.getId());
+		copy.setReference(reservation.getReference());
+		copy.setClient(reservation.getClient());
+		copy.setRoom(reservation.getRoom());
+		copy.setStartDate(reservation.getStartDate());
+		copy.setEndDate(reservation.getEndDate());
+		copy.setCreationDate(reservation.getCreationDate());
+		copy.setParticipantCount(reservation.getParticipantCount());
+		copy.setPurpose(reservation.getPurpose());
+		copy.setStatus(reservation.getStatus());
+		return copy;
+	}
+
+	private void updateReservationTimeAndRoom(Scanner scanner, Reservation reservation) {
+		listRooms();
+		long roomId = readLong(scanner, "Nouveau ID salle: ");
+		Optional<Room> roomOpt = roomService.getRoomById(roomId);
+		if (roomOpt.isEmpty()) {
+			throw new IllegalArgumentException("Salle introuvable");
+		}
+
+		LocalDateTime startDate = readDateTime(scanner, "Nouveau debut (format yyyy-MM-dd HH:mm): ");
+		LocalDateTime endDate = readDateTime(scanner, "Nouvelle fin (format yyyy-MM-dd HH:mm): ");
+		if (!endDate.isAfter(startDate)) {
+			throw new IllegalArgumentException("La date de fin doit etre apres la date de debut");
+		}
+
+		reservation.setRoom(roomOpt.get());
+		reservation.setStartDate(startDate);
+		reservation.setEndDate(endDate);
+
+		int fallbackParticipants = reservation.getParticipantCount() > 0 ? reservation.getParticipantCount() : 1;
+		int participantCount = readPositiveIntOrDefault(
+				scanner,
+				"Nouveau nombre de participants (vide = conserver: " + fallbackParticipants + "): ",
+				fallbackParticipants);
+		if (participantCount <= 0) {
+			throw new IllegalArgumentException("Nombre de participants invalide");
+		}
+		reservation.setParticipantCount(participantCount);
+
+		System.out.print("Nouveau motif (vide = conserver): ");
+		String purposeInput = scanner.nextLine().trim();
+		// Empty text keeps the previous purpose to prevent accidental data loss.
+		if (!purposeInput.isEmpty()) {
+			reservation.setPurpose(purposeInput);
+		}
 	}
 }
