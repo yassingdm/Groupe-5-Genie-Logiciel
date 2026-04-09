@@ -3,6 +3,7 @@ package eidd.grp5.repository;
 import eidd.grp5.model.User;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 public class UserRepository implements Repository<User> {
@@ -11,6 +12,7 @@ public class UserRepository implements Repository<User> {
     
     @Override
     public User save(User entity) {
+        Objects.requireNonNull(entity, "entity must not be null");
         User safeEntity = copyUser(entity);
         if (entity.getId() == null) {
             // New user: assign an id and store it.
@@ -36,7 +38,7 @@ public class UserRepository implements Repository<User> {
         for (User user : users) {
             result.add(copyUser(user));
         }
-        return result;
+        return List.copyOf(result);
     }
 
     @Override

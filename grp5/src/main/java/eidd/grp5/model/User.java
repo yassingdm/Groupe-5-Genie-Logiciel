@@ -11,6 +11,12 @@ public class User {
     private Role role;
 
     public User(String name,String email){
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("name must not be blank");
+        }
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("email must not be blank");
+        }
         this.name=name;
         this.email=email;
         this.role=Role.CUSTOMER;

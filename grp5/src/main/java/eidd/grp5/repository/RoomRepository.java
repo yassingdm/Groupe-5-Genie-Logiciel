@@ -3,6 +3,7 @@ package eidd.grp5.repository;
 import eidd.grp5.model.Room;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 public class RoomRepository implements Repository<Room> {
@@ -11,6 +12,7 @@ public class RoomRepository implements Repository<Room> {
     
     @Override
     public Room save(Room entity) {
+        Objects.requireNonNull(entity, "entity must not be null");
         Room safeEntity = copyRoom(entity);
         if (entity.getId() == null) {
             // New room: assign an id and store it.
@@ -36,7 +38,7 @@ public class RoomRepository implements Repository<Room> {
         for (Room room : rooms) {
             result.add(copyRoom(room));
         }
-        return result;
+        return List.copyOf(result);
     }
 
     @Override

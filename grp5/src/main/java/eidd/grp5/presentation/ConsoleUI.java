@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Scanner;
 
@@ -64,9 +65,9 @@ public class ConsoleUI {
 	private final ReservationService reservationService;
 
 	public ConsoleUI(UserService userService, RoomService roomService, ReservationService reservationService) {
-		this.userService = userService;
-		this.roomService = roomService;
-		this.reservationService = reservationService;
+		this.userService = Objects.requireNonNull(userService, "userService must not be null");
+		this.roomService = Objects.requireNonNull(roomService, "roomService must not be null");
+		this.reservationService = Objects.requireNonNull(reservationService, "reservationService must not be null");
 	}
 
 	public static ConsoleUI createDefault() {

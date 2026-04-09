@@ -1,6 +1,7 @@
 package eidd.grp5.service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import eidd.grp5.model.User;
@@ -11,7 +12,7 @@ public class UserService {
     private final UserRepository userRepository;
 
     public UserService(UserRepository userRepository) {
-        this.userRepository = userRepository;
+        this.userRepository = Objects.requireNonNull(userRepository, "userRepository must not be null");
     }
 
     public User createUser(User user) {

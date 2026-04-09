@@ -1,6 +1,7 @@
 package eidd.grp5.service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import eidd.grp5.model.Room;
@@ -11,7 +12,7 @@ public class RoomService {
     private final RoomRepository roomRepository;
 
     public RoomService(RoomRepository roomRepository) {
-        this.roomRepository = roomRepository;
+        this.roomRepository = Objects.requireNonNull(roomRepository, "roomRepository must not be null");
     }
 
     public Room createRoom(Room room) {

@@ -1,6 +1,7 @@
 package eidd.grp5.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import org.junit.jupiter.api.Test;
@@ -34,10 +35,8 @@ class UserTest {
     }
 
     @Test
-    void shouldAcceptNullAndEmptyValuesAsEdgeCase() {
-        User user = new User("", null);
-
-        assertEquals("", user.getName());
-        assertNull(user.getEmail());
+    void shouldRejectBlankOrNullConstructorValues() {
+        assertThrows(IllegalArgumentException.class, () -> new User("", "alice@mail.com"));
+        assertThrows(IllegalArgumentException.class, () -> new User("Alice", null));
     }
 }

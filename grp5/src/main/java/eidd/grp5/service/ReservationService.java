@@ -3,6 +3,7 @@ package eidd.grp5.service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import eidd.grp5.model.Reservation;
@@ -17,7 +18,8 @@ public class ReservationService {
     private final List<ReservationObserver> observers = new ArrayList<>();
 
     public ReservationService(ReservationRepository reservationRepository) {
-        this.reservationRepository = reservationRepository;
+        this.reservationRepository = Objects.requireNonNull(reservationRepository,
+                "reservationRepository must not be null");
     }
 
     /**

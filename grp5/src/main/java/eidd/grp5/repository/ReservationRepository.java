@@ -5,6 +5,7 @@ import eidd.grp5.model.Room;
 import eidd.grp5.model.User;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 
@@ -14,6 +15,7 @@ public class ReservationRepository implements Repository<Reservation> {
     
     @Override
     public Reservation save(Reservation entity) {
+        Objects.requireNonNull(entity, "entity must not be null");
         Reservation safeEntity = copyReservation(entity);
         if (entity.getId() == null) {
             // New reservation: assign an id and store it.
@@ -39,7 +41,7 @@ public class ReservationRepository implements Repository<Reservation> {
         for (Reservation reservation : reservations) {
             result.add(copyReservation(reservation));
         }
-        return result;
+        return List.copyOf(result);
     }
 
     @Override
@@ -96,7 +98,7 @@ public class ReservationRepository implements Repository<Reservation> {
                 result.add(copyReservation(reservation));
             }
         }
-        return result;
+        return List.copyOf(result);
     }
 
     private Reservation copyReservation(Reservation reservation) {

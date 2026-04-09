@@ -32,6 +32,13 @@ build/
 Thumbs.db 
 # Logs 
 *.log 
+hs_err_pid*.log
+hs_err_pid*
+# Secrets
+.env
+*.pem
+*.key
+secrets.properties
 # Package files 
 *.jar 
 *.war 
