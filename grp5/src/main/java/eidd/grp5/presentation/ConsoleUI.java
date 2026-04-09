@@ -33,6 +33,9 @@ public class ConsoleUI {
 		void execute();
 	}
 
+	private record RoomPeriodSelection(Long roomId, LocalDateTime startDate, LocalDateTime endDate) {
+	}
+
 	// Abstract Factory pattern: this centralizes dependency creation for the default console setup
 	// so wiring can change later without changing the UI logic.
 	private interface ConsoleDependencyFactory {
@@ -615,8 +618,7 @@ public class ConsoleUI {
 		LocalDateTime startDate = readDateTime(scanner, "Debut (format yyyy-MM-dd HH:mm): ");
 		LocalDateTime endDate = readDateTime(scanner, "Fin (format yyyy-MM-dd HH:mm): ");
 
-		if (!endDate.isAfter(startDate)) {
-			System.out.println("La fin doit etre apres le debut.");
+		if (!ensureEndAfterStart(startDate, endDate)) {
 			return;
 		}
 
@@ -703,17 +705,12 @@ public class ConsoleUI {
 	}
 
 	private void checkRoomAvailability(Scanner scanner) {
-		listRooms();
-		long roomId = readLong(scanner, "ID salle: ");
-		LocalDateTime startDate = readDateTime(scanner, "Debut (format yyyy-MM-dd HH:mm): ");
-		LocalDateTime endDate = readDateTime(scanner, "Fin (format yyyy-MM-dd HH:mm): ");
-
-		if (!endDate.isAfter(startDate)) {
-			System.out.println("La fin doit etre apres le debut.");
+		RoomPeriodSelection selection = readRoomPeriodSelection(scanner);
+		if (selection == null) {
 			return;
 		}
 
-		if (reservationService.isRoomAvailable(roomId, startDate, endDate)) {
+		if (reservationService.isRoomAvailable(selection.roomId(), selection.startDate(), selection.endDate())) {
 			System.out.println("La salle est DISPONIBLE pour cette periode.");
 		} else {
 			System.out.println("La salle est OCCUPEE pour cette periode.");
@@ -721,17 +718,15 @@ public class ConsoleUI {
 	}
 
 	private void showConflictingReservations(Scanner scanner) {
-		listRooms();
-		long roomId = readLong(scanner, "ID salle: ");
-		LocalDateTime startDate = readDateTime(scanner, "Debut (format yyyy-MM-dd HH:mm): ");
-		LocalDateTime endDate = readDateTime(scanner, "Fin (format yyyy-MM-dd HH:mm): ");
-
-		if (!endDate.isAfter(startDate)) {
-			System.out.println("La fin doit etre apres le debut.");
+		RoomPeriodSelection selection = readRoomPeriodSelection(scanner);
+		if (selection == null) {
 			return;
 		}
 
-		List<Reservation> conflicts = reservationService.getConflictingReservations(roomId, startDate, endDate);
+		List<Reservation> conflicts = reservationService.getConflictingReservations(
+				selection.roomId(),
+				selection.startDate(),
+				selection.endDate());
 		if (conflicts.isEmpty()) {
 			System.out.println("Aucun conflit pour cette periode.");
 			return;
@@ -743,21 +738,41 @@ public class ConsoleUI {
 	}
 
 	private void showRoomOccupancy(Scanner scanner) {
+		RoomPeriodSelection selection = readRoomPeriodSelection(scanner);
+		if (selection == null) {
+			return;
+		}
+
+		long occupiedMinutes = reservationService.getRoomOccupancyDuration(
+				selection.roomId(),
+				selection.startDate(),
+				selection.endDate());
+		double percentage = reservationService.getRoomOccupancyPercentage(
+				selection.roomId(),
+				selection.startDate(),
+				selection.endDate());
+		System.out.println("--- Taux d'occupation ===");
+		System.out.println("Duree occupee: " + occupiedMinutes + " minutes");
+		System.out.printf("Pourcentage d'occupation: %.2f%%\n", percentage);
+	}
+
+	private RoomPeriodSelection readRoomPeriodSelection(Scanner scanner) {
 		listRooms();
 		long roomId = readLong(scanner, "ID salle: ");
 		LocalDateTime startDate = readDateTime(scanner, "Debut (format yyyy-MM-dd HH:mm): ");
 		LocalDateTime endDate = readDateTime(scanner, "Fin (format yyyy-MM-dd HH:mm): ");
+		if (!ensureEndAfterStart(startDate, endDate)) {
+			return null;
+		}
+		return new RoomPeriodSelection(roomId, startDate, endDate);
+	}
 
+	private boolean ensureEndAfterStart(LocalDateTime startDate, LocalDateTime endDate) {
 		if (!endDate.isAfter(startDate)) {
 			System.out.println("La fin doit etre apres le debut.");
-			return;
+			return false;
 		}
-
-		long occupiedMinutes = reservationService.getRoomOccupancyDuration(roomId, startDate, endDate);
-		double percentage = reservationService.getRoomOccupancyPercentage(roomId, startDate, endDate);
-		System.out.println("--- Taux d'occupation ===");
-		System.out.println("Duree occupee: " + occupiedMinutes + " minutes");
-		System.out.printf("Pourcentage d'occupation: %.2f%%\n", percentage);
+		return true;
 	}
 
 	private void printReservationDetails(Reservation reservation) {
