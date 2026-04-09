@@ -1,18 +1,18 @@
 package eidd.grp5.service;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 import eidd.grp5.model.User;
 import eidd.grp5.repository.UserRepository;
+import eidd.grp5.util.ValidationUtils;
 
 public class UserService {
 
     private final UserRepository userRepository;
 
     public UserService(UserRepository userRepository) {
-        this.userRepository = Objects.requireNonNull(userRepository, "userRepository must not be null");
+        this.userRepository = ValidationUtils.requireNonNull(userRepository, "userRepository must not be null");
     }
 
     public User createUser(User user) {

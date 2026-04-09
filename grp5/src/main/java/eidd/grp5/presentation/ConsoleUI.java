@@ -8,7 +8,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Scanner;
 
@@ -21,6 +20,7 @@ import eidd.grp5.repository.UserRepository;
 import eidd.grp5.service.ReservationService;
 import eidd.grp5.service.RoomService;
 import eidd.grp5.service.UserService;
+import eidd.grp5.util.ValidationUtils;
 
 public class ConsoleUI {
 
@@ -65,9 +65,9 @@ public class ConsoleUI {
 	private final ReservationService reservationService;
 
 	public ConsoleUI(UserService userService, RoomService roomService, ReservationService reservationService) {
-		this.userService = Objects.requireNonNull(userService, "userService must not be null");
-		this.roomService = Objects.requireNonNull(roomService, "roomService must not be null");
-		this.reservationService = Objects.requireNonNull(reservationService, "reservationService must not be null");
+		this.userService = ValidationUtils.requireNonNull(userService, "userService must not be null");
+		this.roomService = ValidationUtils.requireNonNull(roomService, "roomService must not be null");
+		this.reservationService = ValidationUtils.requireNonNull(reservationService, "reservationService must not be null");
 	}
 
 	public static ConsoleUI createDefault() {

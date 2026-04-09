@@ -1,4 +1,7 @@
 package eidd.grp5.model;
+
+import eidd.grp5.util.ValidationUtils;
+
 public class User {
     public enum Role {
         CUSTOMER,
@@ -11,14 +14,8 @@ public class User {
     private Role role;
 
     public User(String name,String email){
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("name must not be blank");
-        }
-        if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("email must not be blank");
-        }
-        this.name=name;
-        this.email=email;
+        this.name=ValidationUtils.requireNonBlank(name, "name");
+        this.email=ValidationUtils.requireNonBlank(email, "email");
         this.role=Role.CUSTOMER;
     }
 

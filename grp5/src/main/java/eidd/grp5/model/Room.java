@@ -1,4 +1,7 @@
 package eidd.grp5.model;   
+
+import eidd.grp5.util.ValidationUtils;
+
 public class Room {
     private Long id;
     private int capacity;
@@ -7,22 +10,10 @@ public class Room {
 
 
     public Room(int id,String name,int capacity,String description){
-        if (id < 0) {
-            throw new IllegalArgumentException("id must be >= 0");
-        }
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("name must not be blank");
-        }
-        if (capacity < 0) {
-            throw new IllegalArgumentException("capacity must be >= 0");
-        }
-        if (description == null) {
-            throw new IllegalArgumentException("description must not be null");
-        }
-        this.id=(long)id;
-        this.name=name;
-        this.capacity=capacity;
-        this.description=description;
+        this.id=(long)ValidationUtils.requireNonNegative(id, "id");
+        this.name=ValidationUtils.requireNonBlank(name, "name");
+        this.capacity=ValidationUtils.requireNonNegative(capacity, "capacity");
+        this.description=ValidationUtils.requireNonNull(description, "description must not be null");
     }
 
     public Long getId() {

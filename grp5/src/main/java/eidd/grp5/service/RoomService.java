@@ -1,18 +1,18 @@
 package eidd.grp5.service;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 import eidd.grp5.model.Room;
 import eidd.grp5.repository.RoomRepository;
+import eidd.grp5.util.ValidationUtils;
 
 public class RoomService {
 
     private final RoomRepository roomRepository;
 
     public RoomService(RoomRepository roomRepository) {
-        this.roomRepository = Objects.requireNonNull(roomRepository, "roomRepository must not be null");
+        this.roomRepository = ValidationUtils.requireNonNull(roomRepository, "roomRepository must not be null");
     }
 
     public Room createRoom(Room room) {
