@@ -70,7 +70,9 @@ public class ConsoleUI {
 	public ConsoleUI(UserService userService, RoomService roomService, ReservationService reservationService) {
 		this.userService = ValidationUtils.requireNonNull(userService, "userService must not be null");
 		this.roomService = ValidationUtils.requireNonNull(roomService, "roomService must not be null");
-		this.reservationService = ValidationUtils.requireNonNull(reservationService, "reservationService must not be null");
+		this.reservationService = ValidationUtils.requireNonNull(
+				reservationService,
+				"reservationService must not be null");
 	}
 
 	public static ConsoleUI createDefault() {
@@ -189,7 +191,11 @@ public class ConsoleUI {
 		printLineSeparator();
 		for (User user : users) {
 			String role = user.getRole() == null ? "CUSTOMER" : user.getRole().name();
-			System.out.println(user.getId() + " | " + user.getName() + " | " + user.getEmail() + " | role=" + role);
+			String row = user.getId()
+					+ " | " + user.getName()
+					+ " | " + user.getEmail()
+					+ " | role=" + role;
+			System.out.println(row);
 		}
 		printLineSeparator();
 		System.out.println();
@@ -243,7 +249,9 @@ public class ConsoleUI {
 		System.out.println("ID | NOM | CAPACITE | DESCRIPTION");
 		printLineSeparator();
 		for (Room room : rooms) {
-			System.out.println(room.getId() + " | " + room.getName() + " | cap=" + room.getCapacity() + " | " + room.getDescription());
+			System.out.println(
+					room.getId() + " | " + room.getName() + " | cap=" + room.getCapacity() + " | "
+							+ room.getDescription());
 		}
 		printLineSeparator();
 		System.out.println();
@@ -254,6 +262,21 @@ public class ConsoleUI {
 			System.out.println("Ajoute d'abord au moins un utilisateur et une salle.");
 			return;
 		}
+
+		Optional<Reservation> reservationOpt = buildReservationDraft(scanner);
+		if (reservationOpt.isEmpty()) {
+			return;
+		}
+
+		try {
+			Reservation created = reservationService.createReservation(reservationOpt.get());
+			System.out.println("Reservation creee avec l'ID: " + created.getId());
+		} catch (IllegalArgumentException | IllegalStateException e) {
+			System.out.println("Impossible de creer la reservation: " + e.getMessage());
+		}
+	}
+
+	private Optional<Reservation> buildReservationDraft(Scanner scanner) {
 
 		listUsers();
 		long userId = readLong(scanner, "ID utilisateur: ");
@@ -269,7 +292,7 @@ public class ConsoleUI {
 
 		if (!endDate.isAfter(startDate)) {
 			System.out.println("La date de fin doit etre apres la date de debut.");
-			return;
+			return Optional.empty();
 		}
 
 		Optional<User> userOpt = userService.getUserById(userId);
@@ -277,7 +300,7 @@ public class ConsoleUI {
 
 		if (userOpt.isEmpty() || roomOpt.isEmpty()) {
 			System.out.println("Utilisateur ou salle introuvable.");
-			return;
+			return Optional.empty();
 		}
 
 		int participantCount = readPositiveIntOrDefault(scanner,
@@ -285,7 +308,7 @@ public class ConsoleUI {
 				1);
 		if (participantCount <= 0) {
 			System.out.println("Nombre de participants invalide.");
-			return;
+			return Optional.empty();
 		}
 
 		System.out.print("Motif (optionnel): ");
@@ -298,13 +321,7 @@ public class ConsoleUI {
 		reservation.setEndDate(endDate);
 		reservation.setParticipantCount(participantCount);
 		reservation.setPurpose(purposeInput.isEmpty() ? null : purposeInput);
-
-		try {
-			Reservation created = reservationService.createReservation(reservation);
-			System.out.println("Reservation creee avec l'ID: " + created.getId());
-		} catch (IllegalArgumentException | IllegalStateException e) {
-			System.out.println("Impossible de creer la reservation: " + e.getMessage());
-		}
+		return Optional.of(reservation);
 	}
 
 	private void listReservations() {
@@ -327,9 +344,13 @@ public class ConsoleUI {
 			String end = formatDateTime(reservation.getEndDate());
 			String status = reservation.getStatus() == null ? "-" : reservation.getStatus().name();
 
-			System.out.println(
-					reservation.getId() + " | client=" + clientName + " | salle=" + roomName + " | debut=" + start
-							+ " | fin=" + end + " | statut=" + status);
+			String row = reservation.getId()
+					+ " | client=" + clientName
+					+ " | salle=" + roomName
+					+ " | debut=" + start
+					+ " | fin=" + end
+					+ " | statut=" + status;
+			System.out.println(row);
 		}
 		printLineSeparator();
 		System.out.println();
@@ -710,7 +731,10 @@ public class ConsoleUI {
 			return;
 		}
 
-		if (reservationService.isRoomAvailable(selection.roomId(), selection.startDate(), selection.endDate())) {
+		if (reservationService.isRoomAvailable(
+				selection.roomId(),
+				selection.startDate(),
+				selection.endDate())) {
 			System.out.println("La salle est DISPONIBLE pour cette periode.");
 		} else {
 			System.out.println("La salle est OCCUPEE pour cette periode.");
@@ -850,7 +874,9 @@ public class ConsoleUI {
 		reservation.setStartDate(startDate);
 		reservation.setEndDate(endDate);
 
-		int fallbackParticipants = reservation.getParticipantCount() > 0 ? reservation.getParticipantCount() : 1;
+		int fallbackParticipants = reservation.getParticipantCount() > 0
+				? reservation.getParticipantCount()
+				: 1;
 		int participantCount = readPositiveIntOrDefault(
 				scanner,
 				"Nouveau nombre de participants (vide = conserver: " + fallbackParticipants + "): ",

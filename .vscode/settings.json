@@ -2,5 +2,6 @@
     "sonarlint.connectedMode.project": {
         "connectionId": "yassingdm",
         "projectKey": "yassingdm_Groupe-5-Genie-Logiciel"
-    }
+    },
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

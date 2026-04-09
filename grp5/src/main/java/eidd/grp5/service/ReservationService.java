@@ -29,7 +29,11 @@ public class ReservationService {
         validateReservation(reservation);
 
         if (hasSchedulableData(reservation)
-                && !isRoomAvailable(reservation.getRoom().getId(), reservation.getStartDate(), reservation.getEndDate(), null)) {
+                && !isRoomAvailable(
+                        reservation.getRoom().getId(),
+                        reservation.getStartDate(),
+                        reservation.getEndDate(),
+                        null)) {
             throw new IllegalStateException("Room is not available for the requested time slot");
         }
 
@@ -147,7 +151,8 @@ public class ReservationService {
         return reservationRepository.findByClientId(clientId).stream()
             // Cancelled reservations are hidden from "upcoming" results.
                 .filter(reservation -> reservation.getStatus() != Reservation.Status.CANCELLED)
-                .filter(reservation -> reservation.getStartDate() != null && reservation.getStartDate().isAfter(fromDate))
+                .filter(reservation -> reservation.getStartDate() != null
+                        && reservation.getStartDate().isAfter(fromDate))
                 .sorted((left, right) -> left.getStartDate().compareTo(right.getStartDate()))
                 .toList();
     }
@@ -351,7 +356,11 @@ public class ReservationService {
         return !getConflictingReservations(roomId, startDate, endDate).isEmpty();
     }
 
-    private boolean isRoomAvailable(Long roomId, LocalDateTime startDate, LocalDateTime endDate, Long excludedReservationId) {
+        private boolean isRoomAvailable(
+            Long roomId,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            Long excludedReservationId) {
         if (roomId == null || startDate == null || endDate == null) {
             throw new IllegalArgumentException("roomId, startDate and endDate must not be null");
         }
