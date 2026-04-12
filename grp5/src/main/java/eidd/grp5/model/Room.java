@@ -1,4 +1,9 @@
-package eidd.grp5.model;   
+package eidd.grp5.model;
+
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 import eidd.grp5.util.ValidationUtils;
 
@@ -7,6 +12,7 @@ public class Room {
     private int capacity;
     private String name;
     private String description;
+    private final Set<String> equipments = new LinkedHashSet<>();
 
 
     public Room(int id,String name,int capacity,String description){
@@ -46,5 +52,49 @@ public class Room {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public List<String> getEquipments() {
+        return new ArrayList<>(equipments);
+    }
+
+    public void setEquipments(List<String> newEquipments) {
+        equipments.clear();
+        if (newEquipments == null) {
+            return;
+        }
+        for (String equipment : newEquipments) {
+            addEquipment(equipment);
+        }
+    }
+
+    public boolean addEquipment(String equipment) {
+        if (equipment == null || equipment.isBlank()) {
+            throw new IllegalArgumentException("equipment must not be blank");
+        }
+        return equipments.add(equipment.trim());
+    }
+
+    public boolean removeEquipment(String equipment) {
+        if (equipment == null || equipment.isBlank()) {
+            throw new IllegalArgumentException("equipment must not be blank");
+        }
+        String target = equipment.trim();
+        String existing = equipments.stream()
+                .filter(item -> item.equalsIgnoreCase(target))
+                .findFirst()
+                .orElse(null);
+        if (existing == null) {
+            return false;
+        }
+        return equipments.remove(existing);
+    }
+
+    public boolean hasEquipment(String equipment) {
+        if (equipment == null || equipment.isBlank()) {
+            throw new IllegalArgumentException("equipment must not be blank");
+        }
+        String target = equipment.trim();
+        return equipments.stream().anyMatch(item -> item.equalsIgnoreCase(target));
     }
 }

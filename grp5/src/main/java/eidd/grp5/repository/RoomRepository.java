@@ -1,10 +1,11 @@
 package eidd.grp5.repository;
 
-import eidd.grp5.model.Room;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
+import eidd.grp5.model.Room;
 
 public class RoomRepository implements Repository<Room> {
 
@@ -62,6 +63,7 @@ public class RoomRepository implements Repository<Room> {
     private Room copyRoom(Room room) {
         Room copy = new Room(0, room.getName(), room.getCapacity(), room.getDescription());
         copy.setId(room.getId());
+        copy.setEquipments(room.getEquipments());
         return copy;
     }
 }

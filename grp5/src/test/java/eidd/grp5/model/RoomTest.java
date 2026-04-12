@@ -2,6 +2,7 @@ package eidd.grp5.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 class RoomTest {
@@ -35,5 +36,22 @@ class RoomTest {
         Room room = new Room(3, "C303", 0, "Capacité nulle");
 
         assertEquals(0, room.getCapacity());
+    }
+
+    @Test
+    void shouldManageRoomEquipments() {
+        Room room = new Room(4, "D404", 20, "Salle equipee");
+
+        room.addEquipment("Projecteur");
+        room.addEquipment("Visio");
+        room.addEquipment("Projecteur");
+
+        assertTrue(room.hasEquipment("projecteur"));
+        assertTrue(room.hasEquipment("VISIO"));
+        assertEquals(2, room.getEquipments().size());
+
+        room.removeEquipment("PROJECTEUR");
+        assertEquals(1, room.getEquipments().size());
+        assertEquals("Visio", room.getEquipments().get(0));
     }
 }

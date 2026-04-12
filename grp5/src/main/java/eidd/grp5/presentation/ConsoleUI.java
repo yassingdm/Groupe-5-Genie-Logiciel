@@ -22,6 +22,7 @@ import eidd.grp5.service.RoomService;
 import eidd.grp5.service.UserService;
 import eidd.grp5.util.ValidationUtils;
 
+@SuppressWarnings("java:S106")
 public class ConsoleUI {
 
 	private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");

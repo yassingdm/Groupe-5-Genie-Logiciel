@@ -44,3 +44,6 @@ secrets.properties
 *.war 
 *.ear
 .Zone
+
+# Private local notes (not for GitHub)
+private/

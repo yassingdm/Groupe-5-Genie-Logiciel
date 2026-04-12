@@ -1,13 +1,14 @@
 package eidd.grp5.repository;
 
-import eidd.grp5.model.Reservation;
-import eidd.grp5.model.Room;
-import eidd.grp5.model.User;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+
+import eidd.grp5.model.Reservation;
+import eidd.grp5.model.Room;
+import eidd.grp5.model.User;
 
 public class ReservationRepository implements Repository<Reservation> {
 
@@ -41,7 +42,7 @@ public class ReservationRepository implements Repository<Reservation> {
         for (Reservation reservation : reservations) {
             result.add(copyReservation(reservation));
         }
-        return List.copyOf(result);
+        return result;
     }
 
     @Override
@@ -98,7 +99,7 @@ public class ReservationRepository implements Repository<Reservation> {
                 result.add(copyReservation(reservation));
             }
         }
-        return List.copyOf(result);
+        return result;
     }
 
     private Reservation copyReservation(Reservation reservation) {
@@ -132,6 +133,7 @@ public class ReservationRepository implements Repository<Reservation> {
         }
         Room copy = new Room(0, room.getName(), room.getCapacity(), room.getDescription());
         copy.setId(room.getId());
+        copy.setEquipments(room.getEquipments());
         return copy;
     }
 }

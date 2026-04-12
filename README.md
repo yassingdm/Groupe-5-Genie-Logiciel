@@ -62,6 +62,20 @@ java -cp target/classes eidd.grp5.app.App
 - Verification de disponibilite et detection des conflits
 - Planning journalier d'une salle
 - Liste des salles disponibles maintenant ou sur un creneau
+- Gestion des equipements par salle (ajout/retrait/recherche par equipement via le service)
+
+## Couverture des attendus soutenance (Sujet 2)
+
+Obligatoires:
+- Catalogue de salles (nom, capacite): OK
+- Creer et annuler une reservation (salle, date, creneau): OK
+- Empêcher les conflits de reservation: OK
+- Lister les reservations d'une salle ou d'une journee: OK
+
+Bonus:
+- Rechercher les salles disponibles sur un creneau: OK
+- Modifier une reservation existante: OK
+- Gestion des equipements: OK (niveau domaine/service)
 
 ## Guide rapide des menus
 

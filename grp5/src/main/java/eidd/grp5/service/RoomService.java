@@ -41,4 +41,27 @@ public class RoomService {
     public long countRooms() {
         return roomRepository.count();
     }
+
+    public Room addEquipmentToRoom(Long roomId, String equipment) {
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("Room not found"));
+        room.addEquipment(equipment);
+        return roomRepository.save(room);
+    }
+
+    public Room removeEquipmentFromRoom(Long roomId, String equipment) {
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("Room not found"));
+        room.removeEquipment(equipment);
+        return roomRepository.save(room);
+    }
+
+    public List<Room> getRoomsByEquipment(String equipment) {
+        if (equipment == null || equipment.isBlank()) {
+            throw new IllegalArgumentException("equipment must not be blank");
+        }
+        return roomRepository.findAll().stream()
+                .filter(room -> room.hasEquipment(equipment))
+                .toList();
+    }
 }
