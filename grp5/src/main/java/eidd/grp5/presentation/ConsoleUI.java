@@ -88,14 +88,16 @@ public class ConsoleUI {
 		try (Scanner scanner = new Scanner(System.in)) {
 			boolean running = true;
 			while (running) {
-				if (!scanner.hasNextLine()) {
+				printMenu();
+				System.out.print("Choix: ");
+				String input;
+				try {
+					input = scanner.nextLine().trim();
+				} catch (NoSuchElementException | IllegalStateException e) {
 					System.out.println();
 					System.out.println("Fermeture de la vue console...");
 					break;
 				}
-				printMenu();
-				System.out.print("Choix: ");
-				String input = scanner.nextLine().trim();
 
 				switch (input) {
 					case "1" -> printStats();
@@ -114,9 +116,6 @@ public class ConsoleUI {
 					default -> System.out.println("Choix invalide. Reessaie.");
 				}
 			}
-		} catch (NoSuchElementException | IllegalStateException e) {
-			System.out.println();
-			System.out.println("Fermeture de la vue console...");
 		}
 	}
 
